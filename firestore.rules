@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow users to read/write their own user profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow authenticated users to read music sheets
+    // Allow managers to write music sheets
+    match /music_sheets/{sheetId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "manager";
+    }
+    
+    // Setlists: Allow read/write if owner
+    match /setlists/{setlistId} {
+      allow read, write: if request.auth != null && (resource == null || resource.data.setOwner == request.auth.uid || request.resource.data.setOwner == request.auth.uid);
+    }
+    
+    // Teams: Allow authenticated users to create/join
+    match /teams/{teamId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && request.auth.uid in resource.data.members;
+      
+      // Allow access to subcollection events
+      match /events/{eventId} {
+         allow read, write: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.members;
+      }
+    }
+  }
+}

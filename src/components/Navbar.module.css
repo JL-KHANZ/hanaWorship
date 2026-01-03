@@ -1,0 +1,146 @@
+.nav {
+    border-bottom: 1px solid var(--glass-border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(var(--glass-blur));
+    background: var(--glass-bg);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    height: 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.desktopMenu {
+    display: none;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.actions {
+    display: none;
+    align-items: center;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .desktopMenu {
+        display: flex;
+    }
+
+    .actions {
+        display: flex;
+    }
+
+    .container {
+        padding: 0 2rem;
+    }
+}
+
+.link {
+    font-size: 0.875rem;
+    color: var(--foreground);
+    opacity: 0.8;
+    transition: all 0.2s;
+}
+
+.link:hover {
+    color: var(--primary);
+    opacity: 1;
+}
+
+.userEmail {
+    font-size: 0.875rem;
+    color: var(--foreground);
+    opacity: 0.6;
+    margin-right: 0.5rem;
+}
+
+.managerLink {
+    composes: link;
+    color: var(--secondary);
+    font-weight: 600;
+}
+
+.managerLink:hover {
+    color: #c084fc;
+}
+
+.signOutBtn {
+    font-size: 0.75rem;
+    border: 1px solid var(--surface-border);
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    background: transparent;
+    color: var(--foreground);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.signOutBtn:hover {
+    background: var(--surface-2);
+}
+
+.mobileToggle {
+    display: block;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+@media (min-width: 768px) {
+    .mobileToggle {
+        display: none;
+    }
+}
+
+.mobileMenu {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    border-top: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    animation: fadeIn 0.2s ease-out;
+}
+
+.mobileLink {
+    font-size: 0.875rem;
+    color: var(--foreground);
+    text-decoration: none;
+}
+
+.logoutLink {
+    color: #fca5a5;
+    border: none;
+    background: none;
+    text-align: left;
+    padding: 0;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

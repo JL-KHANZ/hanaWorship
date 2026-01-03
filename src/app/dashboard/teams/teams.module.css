@@ -1,0 +1,244 @@
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.actionBtns {
+    display: flex;
+    gap: 1rem;
+}
+
+.createBtn {
+    background: var(--primary);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+}
+
+.joinBtn {
+    background: transparent;
+    border: 1px solid var(--surface-border);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.joinBtn:hover {
+    background: var(--surface-1);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.teamCard {
+    background: var(--surface-1);
+    border: 1px solid var(--surface-border);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: inherit;
+}
+
+.teamCard:hover {
+    border-color: var(--secondary);
+    background: var(--surface-2);
+}
+
+.teamName {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.memberCount {
+    opacity: 0.7;
+    font-size: 0.875rem;
+}
+
+/* Modal Stlyes */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.modal {
+    background: #1a1a1a;
+    border: 1px solid var(--surface-border);
+    padding: 2rem;
+    border-radius: 1rem;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.modalTitle {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+}
+
+.input {
+    width: 100%;
+    background: var(--surface-1);
+    border: 1px solid var(--surface-border);
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    color: white;
+    margin-bottom: 1rem;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.cancelBtn {
+    background: transparent;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+}
+
+.submitBtn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+}
+
+/* Calendar Page Styles */
+.calendarContainer {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+
+@media (min-width: 1024px) {
+    .calendarContainer {
+        grid-template-columns: 2fr 1fr;
+    }
+}
+
+.calendarWrapper {
+    background: var(--surface-1);
+    border: 1px solid var(--surface-border);
+    border-radius: 1rem;
+    padding: 1rem;
+}
+
+/* React Calendar Overrides */
+.calendarWrapper :global(.react-calendar) {
+    width: 100%;
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    color: white;
+}
+
+.calendarWrapper :global(.react-calendar__navigation button) {
+    color: white;
+    font-size: 1.2rem;
+}
+
+.calendarWrapper :global(.react-calendar__tile) {
+    color: white;
+    padding: 1.5rem 0.5rem;
+    background: transparent;
+    border-radius: 0.5rem;
+}
+
+.calendarWrapper :global(.react-calendar__tile:enabled:hover),
+.calendarWrapper :global(.react-calendar__tile:enabled:focus) {
+    background: var(--surface-2);
+}
+
+.calendarWrapper :global(.react-calendar__tile--now) {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.calendarWrapper :global(.react-calendar__tile--active) {
+    background: var(--primary) !important;
+    color: white;
+}
+
+/* Dot indicator for events */
+.eventDot {
+    width: 6px;
+    height: 6px;
+    background: var(--secondary);
+    border-radius: 50%;
+    margin: 4px auto 0;
+}
+
+.sidebar {
+    background: var(--surface-1);
+    border: 1px solid var(--surface-border);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    height: fit-content;
+}
+
+.sidebarTitle {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--surface-border);
+}
+
+.eventItem {
+    padding: 1rem;
+    background: var(--surface-2);
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.meta {
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+.assignSection {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--surface-border);
+}
+
+.select {
+    width: 100%;
+    background: black;
+    color: white;
+    padding: 0.5rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
