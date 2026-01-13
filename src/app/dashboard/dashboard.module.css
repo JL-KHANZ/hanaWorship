@@ -55,19 +55,19 @@
 
 @media (min-width: 640px) {
     .grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
     }
 }
 
 @media (min-width: 1024px) {
     .grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
     }
 }
 
 @media (min-width: 1280px) {
     .grid {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(5, 1fr);
     }
 }
 
@@ -101,31 +101,26 @@
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }
 
-.cardImage {
-    width: 100%;
-    aspect-ratio: 3/4;
-    object-fit: cover;
-    background: #222;
-}
+
 
 .cardContent {
-    padding: 1rem;
+    padding: 0.75rem;
 }
 
 .songName {
     font-weight: 600;
-    font-size: 1.1rem;
-    margin-bottom: 0.25rem;
+    font-size: 1rem;
+    margin-bottom: 0.15rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .songMeta {
-    font-size: 0.875rem;
+    font-size: 0.8rem;
     color: var(--foreground);
     opacity: 0.7;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
     display: flex;
     justify-content: space-between;
 }
@@ -138,6 +133,74 @@
     font-weight: 700;
 }
 
+/* Modal Styles */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    backdrop-filter: blur(4px);
+}
+
+.closeBtn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.875rem;
+    z-index: 50;
+    padding: 0.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.closeBtn:hover {
+    color: white;
+}
+
+.modalContent {
+    position: relative;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.modalImage {
+    max-height: 90vh;
+    max-width: 100%;
+    object-fit: contain;
+    border-radius: 0.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.modalCaption {
+    position: absolute;
+    bottom: -3rem;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: white;
+}
+
+.modalTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.modalSubtitle {
+    opacity: 0.7;
+}
+
+.modalFallback {
+    color: white;
+    font-size: 1.25rem;
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -148,4 +211,112 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+.editInput {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 8px;
+    color: white;
+    width: 100%;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.editInput:focus {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: var(--primary);
+}
+
+/* Fullscreen Viewer Styles */
+.viewerOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: black;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.viewerImageContainer {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.viewerImage {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    user-select: none;
+}
+
+.viewerTopBar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
+    z-index: 110;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.viewerBottomBar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 2rem 1rem 2rem 1rem;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+    z-index: 110;
+    text-align: center;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.viewerCloseBtn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    backdrop-filter: blur(4px);
+    transition: all 0.2s;
+}
+
+.viewerCloseBtn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+}
+
+.viewerTitle {
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.viewerSubtitle {
+    font-size: 1rem;
+    opacity: 0.8;
 }

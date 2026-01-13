@@ -31,7 +31,7 @@ export default function SetlistsPage() {
     }, [user]);
 
     return (
-        <div>
+        <div className={styles.container}>
             <div className={styles.header}>
                 <h1 className="text-3xl font-bold">내 콘티</h1>
                 <Link href="/dashboard/setlists/new" className={styles.createBtn}>+ 새 콘티 만들기</Link>
@@ -51,6 +51,18 @@ export default function SetlistsPage() {
                                 {new Date(set.setTargetDate).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                             </span>
                             <h3 className={styles.setName}>{set.name}</h3>
+
+                            <div className={styles.songListPreview}>
+                                {set.songs && set.songs.length > 0 ? (
+                                    set.songs.map((song: any, idx: number) => (
+                                        <div key={idx} className={styles.songPreviewItem}>
+                                            <span className={styles.songNumber}>{idx + 1}.</span> {song.songName}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className={styles.noSongs}>곡 없음</div>
+                                )}
+                            </div>
                         </div>
                         <div className={styles.songCount}>
                             {set.songs?.length || 0} Songs

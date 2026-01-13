@@ -13,16 +13,20 @@ service cloud.firestore {
       allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "manager";
     }
     
-    // Setlists: Allow read/write if owner
+    // Setlists: Allow read if authenticated (for sharing), write if owner
     match /setlists/{setlistId} {
-      allow read, write: if request.auth != null && (resource == null || resource.data.setOwner == request.auth.uid || request.resource.data.setOwner == request.auth.uid);
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (resource == null || resource.data.setOwner == request.auth.uid || request.resource.data.setOwner == request.auth.uid);
     }
     
     // Teams: Allow authenticated users to create/join
     match /teams/{teamId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
-      allow update: if request.auth != null && request.auth.uid in resource.data.members;
+      allow update: if request.auth != null && (
+        request.auth.uid in resource.data.members || 
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']) && request.resource.data.members.hasAll(resource.data.members))
+      );
       
       // Allow access to subcollection events
       match /events/{eventId} {

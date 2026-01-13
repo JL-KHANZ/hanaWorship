@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import styles from "./manager.module.css";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc } from "firebase/firestore";
 import { FaQuestionCircle, FaTimes } from "react-icons/fa";
 
 const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
@@ -22,6 +22,7 @@ export default function ManagerPage() {
         songArtist: "",
         songArrangedBy: "",
         songBpm: "",
+        songLanguage: "한국어"
     });
     const [uploading, setUploading] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
@@ -47,7 +48,10 @@ export default function ManagerPage() {
 
     const onSuccess = (res: any) => {
         setUploading(false);
-        setUploadedImage(res);
+        setUploadedImage((prev: any) => {
+            if (!prev) return [res];
+            return [...prev, res];
+        });
     };
 
     const onError = (err: any) => {
@@ -58,37 +62,122 @@ export default function ManagerPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!uploadedImage) {
+        if (!uploadedImage || uploadedImage.length === 0) {
             alert("이미지를 먼저 업로드해주세요");
             return;
         }
 
         try {
-            // Check for duplicates
+            // 1. Query for potential duplicates (Same Name & Artist)
             const q = query(
                 collection(db, "music_sheets"),
                 where("songName", "==", formData.songName),
-                where("songKey", "==", formData.songKey),
-                where("songArtist", "==", formData.songArtist),
-                where("songArrangedBy", "==", formData.songArrangedBy)
+                where("songArtist", "==", formData.songArtist)
             );
-            const duplicateSnap = await getDocs(q);
+            const querySnapshot = await getDocs(q);
 
-            if (!duplicateSnap.empty) {
-                alert("이미 존재하는 악보입니다.");
-                return;
+            let exactMatchDoc = null;
+
+            // 2. Find exact match for Key and Arranger
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                if (data.songKey === formData.songKey && data.songArrangedBy === formData.songArrangedBy) {
+                    exactMatchDoc = doc;
+                }
+            });
+
+            // Prepare common data
+            const mainImage = uploadedImage[0];
+            // Store all pages
+            const pages = uploadedImage.map((img: any) => img.url);
+
+            if (exactMatchDoc) {
+                // 3. Conflict Check (Same Song Identity found)
+                const existingData = (exactMatchDoc as any).data();
+                const newCategory = formData.songCategory;
+                const newBpm = formData.songBpm;
+                const newLanguage = formData.songLanguage;
+
+                // Check Category Conflict
+                // existingData.songCategory is likely an array e.g. ["상향"]
+                // formData.songCategory is a string e.g. "상향"
+                let categoryConflict = false;
+                if (existingData.songCategory && Array.isArray(existingData.songCategory) && existingData.songCategory.length > 0) {
+                    // Check if the new category is already in the existing array. 
+                    // Simple logic: if the existing array doesn't include the new category, user might be trying to change it.
+                    // IMPORTANT: User asked "if there is a different value... reject".
+                    // If existing is ['A'], new is 'B', that is different. Conflict.
+                    // If existing is ['A'], new is 'A', no conflict.
+                    if (!existingData.songCategory.includes(newCategory)) {
+                        categoryConflict = true;
+                    }
+                }
+
+                // Check BPM Conflict
+                let bpmConflict = false;
+                if (existingData.songBpm && String(existingData.songBpm).trim() !== "" && newBpm && String(newBpm).trim() !== "") {
+                    if (String(existingData.songBpm) !== String(newBpm)) {
+                        bpmConflict = true;
+                    }
+                }
+
+                // Check Language Conflict
+                let languageConflict = false;
+                if (existingData.songLanguage && existingData.songLanguage !== newLanguage) {
+                    languageConflict = true;
+                }
+
+                if (categoryConflict || bpmConflict || languageConflict) {
+                    let msg = "이미 존재하는 악보와 데이터가 충돌합니다.\n";
+                    if (categoryConflict) msg += `- 카테고리 불일치 (기존: ${existingData.songCategory}, 입력: ${newCategory})\n`;
+                    if (bpmConflict) msg += `- BPM 불일치 (기존: ${existingData.songBpm}, 입력: ${newBpm})\n`;
+                    if (languageConflict) msg += `- 언어 불일치 (기존: ${existingData.songLanguage}, 입력: ${newLanguage})\n`;
+                    msg += "동일한 편곡/키의 악보는 데이터가 일치해야 합니다.";
+                    alert(msg);
+                    return;
+                }
+
+                // 4. Update Existing Song (No Conflict)
+                const docRef = doc(db, "music_sheets", (exactMatchDoc as any).id);
+
+                // Prepare update data. We merge new Category if it wasn't there (though logic above ensures it matches if present).
+                // If existing category was empty, we add it.
+                // We update image to the new one.
+                const updateData: any = {
+                    imageUrl: mainImage.url,
+                    thumbnailUrl: mainImage.thumbnailUrl || mainImage.url,
+                    filePath: mainImage.filePath,
+                    pages: pages, // Add pages array
+                    updatedAt: serverTimestamp(),
+                    updatedBy: user?.uid
+                };
+
+                // Update info fields if they were missing
+                if (!existingData.songBpm && newBpm) updateData.songBpm = newBpm;
+                if (!existingData.songLanguage && newLanguage) updateData.songLanguage = newLanguage;
+                if ((!existingData.songCategory || existingData.songCategory.length === 0) && newCategory) {
+                    updateData.songCategory = [newCategory];
+                }
+
+                await updateDoc(docRef, updateData);
+
+                setSuccess("기존 악보가 성공적으로 업데이트되었습니다! (이미지 및 페이지 갱신됨)");
+            } else {
+                // 5. Create New Song (Different Key/Arranger or New Name/Artist)
+                await addDoc(collection(db, "music_sheets"), {
+                    ...formData,
+                    songCategory: formData.songCategory.split(",").map(s => s.trim()),
+                    imageUrl: mainImage.url,
+                    thumbnailUrl: mainImage.thumbnailUrl || mainImage.url,
+                    filePath: mainImage.filePath,
+                    pages: pages, // Add pages array
+                    uploadedBy: user?.uid,
+                    createdAt: serverTimestamp(),
+                });
+                setSuccess("새로운 악보가 성공적으로 등록되었습니다!");
             }
 
-            await addDoc(collection(db, "music_sheets"), {
-                ...formData,
-                songCategory: formData.songCategory.split(",").map(s => s.trim()),
-                imageUrl: uploadedImage.url,
-                thumbnailUrl: uploadedImage.thumbnailUrl || uploadedImage.url,
-                filePath: uploadedImage.filePath,
-                uploadedBy: user?.uid,
-                createdAt: serverTimestamp(),
-            });
-            setSuccess("악보가 성공적으로 등록되었습니다!");
+            // Cleanup form
             setFormData({
                 songName: "",
                 songKey: "C",
@@ -96,8 +185,10 @@ export default function ManagerPage() {
                 songArtist: "",
                 songArrangedBy: "",
                 songBpm: "",
+                songLanguage: "한국어"
             });
             setUploadedImage(null);
+
         } catch (error) {
             console.error("Error saving doc", error);
             alert("저장에 실패했습니다.");
@@ -121,7 +212,9 @@ export default function ManagerPage() {
 
     return (
         <div className={styles.container}>
-            <h1 className={`${styles.title} premium-gradient`}>악보 등록하기</h1>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className={`${styles.title} premium-gradient !mb-0`}>악보 등록하기</h1>
+            </div>
 
             {success && <div className={styles.successMessage}>{success}</div>}
 
@@ -139,6 +232,15 @@ export default function ManagerPage() {
                                 {["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"].map(k => (
                                     <option key={k} value={k}>{k}</option>
                                 ))}
+                            </select>
+                        </div>
+                        <div className={styles.field}>
+                            <label className={styles.label}>언어</label>
+                            <select name="songLanguage" value={(formData as any).songLanguage} onChange={handleChange} className={styles.input}>
+                                <option value="한국어">한국어</option>
+                                <option value="영어">영어</option>
+                                <option value="아랍어">아랍어</option>
+                                <option value="터키어">터키어</option>
                             </select>
                         </div>
                         <div className={styles.field}>
@@ -179,28 +281,63 @@ export default function ManagerPage() {
                     </div>
 
                     <div className={styles.field}>
-                        <label className={styles.label}>악보 이미지</label>
+                        <label className={styles.label}>악보 이미지 (여러 장 가능)</label>
                         <div className={styles.uploadArea}>
-                            {publicKey && urlEndpoint ? (
-                                <IKContext
-                                    publicKey={publicKey}
-                                    urlEndpoint={urlEndpoint}
-                                    authenticator={authenticator}
-                                >
-                                    <IKUpload
-                                        fileName="music-sheet"
-                                        onError={onError}
-                                        onSuccess={onSuccess}
-                                        onUploadStart={() => setUploading(true)}
-                                        validateFile={(file: any) => file.size < 10000000} // 10MB
-                                    />
-                                </IKContext>
-                            ) : (
-                                <div className="text-red-400">ImageKit 설정이 필요합니다</div>
-                            )}
+                            <div className="flex flex-col gap-4 w-full">
+                                {uploadedImage && Array.isArray(uploadedImage) && uploadedImage.length > 0 && (
+                                    <div className="grid grid-cols-2 gap-4 w-full mb-4">
+                                        {uploadedImage.map((img: any, idx: number) => (
+                                            <div key={idx} className="relative group aspect-[3/4] bg-black/20 rounded-lg overflow-hidden border border-white/10">
+                                                <img src={img.thumbnailUrl || img.url} className="w-full h-full object-cover" />
+                                                <div className="absolute top-2 left-2 bg-black/50 px-2 py-1 rounded text-xs text-white backdrop-blur-sm">
+                                                    Page {idx + 1}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const newImages = uploadedImage.filter((_: any, i: number) => i !== idx);
+                                                        setUploadedImage(newImages.length ? newImages : null);
+                                                    }}
+                                                    className="absolute top-2 right-2 bg-red-500/80 p-1.5 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                                                >
+                                                    <FaTimes size={12} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="flex items-center justify-center w-full">
+                                    {publicKey && urlEndpoint ? (
+                                        <IKContext
+                                            publicKey={publicKey}
+                                            urlEndpoint={urlEndpoint}
+                                            authenticator={authenticator}
+                                        >
+                                            <div className="bg-white/5 border border-dashed border-white/20 rounded-xl p-8 text-center hover:bg-white/10 transition-colors cursor-pointer w-full">
+                                                <IKUpload
+                                                    fileName="music-sheet"
+                                                    onError={onError}
+                                                    onSuccess={onSuccess}
+                                                    onUploadStart={() => setUploading(true)}
+                                                    validateFile={(file: any) => file.size < 10000000} // 10MB
+                                                    style={{ display: 'none' }}
+                                                    id="file-upload"
+                                                />
+                                                <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center gap-2">
+                                                    <span className="text-2xl">📄</span>
+                                                    <span className="text-sm text-gray-400">
+                                                        {uploading ? "업로드 중..." : "클릭하여 이미지 추가"}
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        </IKContext>
+                                    ) : (
+                                        <div className="text-red-400">ImageKit 설정이 필요합니다</div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
-                        {uploading && <p className={`${styles.uploadStatus} text-yellow-400`}>업로드 중...</p>}
-                        {uploadedImage && <p className={`${styles.uploadStatus} text-green-400`}>이미지 업로드 완료!</p>}
                     </div>
 
                     <button type="submit" disabled={uploading} className={styles.submitBtn}>

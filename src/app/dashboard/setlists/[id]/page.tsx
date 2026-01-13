@@ -4,15 +4,27 @@ import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import styles from "./viewer.module.css";
-import { FaDownload, FaArrowLeft, FaPrint } from "react-icons/fa";
+import { AnimatePresence, motion } from "framer-motion";
+import { FaDownload, FaArrowLeft, FaPrint, FaPlay, FaTimes, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import jsPDF from "jspdf";
 
 export default function SetlistViewerPage() {
     const { id } = useParams();
     const router = useRouter();
+    // Flattened Slides State
+    const [slides, setSlides] = useState<any[]>([]);
+
+    // ... existing basic states
     const [setlist, setSetlist] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [generatingPdf, setGeneratingPdf] = useState(false);
+
+    // Slideshow State
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [showControls, setShowControls] = useState(true);
+    const [isDragging, setIsDragging] = useState(false);
+
+    const toggleControls = () => setShowControls(prev => !prev);
 
     useEffect(() => {
         if (!id) return;
@@ -21,7 +33,30 @@ export default function SetlistViewerPage() {
                 const docRef = doc(db, "setlists", id as string);
                 const snap = await getDoc(docRef);
                 if (snap.exists()) {
-                    setSetlist({ id: snap.id, ...snap.data() });
+                    const data = { id: snap.id, ...snap.data() };
+                    setSetlist(data);
+
+                    // Flatten songs into slides
+                    const flattened: any[] = [];
+                    data.songs.forEach((song: any) => {
+                        const pages = song.pages && song.pages.length > 0 ? song.pages : (song.imageUrl ? [song.imageUrl] : []);
+                        pages.forEach((pageUrl: string, pIndex: number) => {
+                            flattened.push({
+                                ...song,
+                                imageUrl: pageUrl, // Override with specific page URL
+                                pageIndex: pIndex,
+                                totalPages: pages.length,
+                                uniqueId: `${song.songName}-${pIndex}`
+                            });
+                        });
+                        // Allow songs with no images to have at least one slide? 
+                        // Current logic: if no image, empty array. 
+                        // If empty array, maybe we push a fallback slide?
+                        if (pages.length === 0) {
+                            flattened.push({ ...song, imageUrl: null, pageIndex: 0, totalPages: 1 });
+                        }
+                    });
+                    setSlides(flattened);
                 } else {
                     alert("Setlist not found");
                     router.push("/dashboard/setlists");
@@ -35,16 +70,27 @@ export default function SetlistViewerPage() {
         fetchSet();
     }, [id, router]);
 
+    // Preload Images (using slides)
+    useEffect(() => {
+        if (!slides || slides.length === 0) return;
+        slides.forEach((slide: any) => {
+            if (slide.imageUrl) {
+                const img = new Image();
+                img.src = slide.imageUrl;
+            }
+        });
+    }, [slides]);
+
     const generatePDF = async () => {
-        if (!setlist || !setlist.songs) return;
+        if (!slides || slides.length === 0) return;
         setGeneratingPdf(true);
 
         try {
             const doc = new jsPDF();
             let pageAdded = false;
 
-            for (const song of setlist.songs) {
-                if (!song.imageUrl) continue;
+            for (const slide of slides) {
+                if (!slide.imageUrl) continue;
 
                 if (pageAdded) {
                     doc.addPage();
@@ -52,13 +98,15 @@ export default function SetlistViewerPage() {
 
                 // Add Title
                 doc.setFontSize(16);
-                doc.text(`${song.songName} (${song.songKey})`, 10, 10);
+                let title = `${slide.songName} (${slide.songKey})`;
+                if (slide.totalPages > 1) {
+                    title += ` - Page ${slide.pageIndex + 1}`;
+                }
+                doc.text(title, 10, 10);
 
                 // Fetch Image
-                // We need to fetch the image as blob/base64 to add to jsPDF
                 try {
-                    // Cross-origin might be an issue. 
-                    const response = await fetch(song.imageUrl, { mode: 'cors' });
+                    const response = await fetch(slide.imageUrl, { mode: 'cors' });
                     const blob = await response.blob();
                     const base64 = await new Promise((resolve) => {
                         const reader = new FileReader();
@@ -74,7 +122,6 @@ export default function SetlistViewerPage() {
                     pageAdded = true;
                 } catch (err) {
                     console.error("Failed to load image for PDF", err);
-                    // Optionally add a text placeholder
                     doc.text("Could not load image", 10, 30);
                     pageAdded = true;
                 }
@@ -89,51 +136,158 @@ export default function SetlistViewerPage() {
         }
     };
 
+    const nextSlide = () => {
+        if (slides && currentIndex < slides.length - 1) {
+            setCurrentIndex(prev => prev + 1);
+        }
+    };
+
+    const prevSlide = () => {
+        if (currentIndex > 0) {
+            setCurrentIndex(prev => prev - 1);
+        }
+    };
+
     if (loading) return <div className="p-8 text-center">콘티 불러오는 중...</div>;
     if (!setlist) return null;
 
+    const currentSlide = slides[currentIndex];
+
+    const handleContainerClick = () => {
+        if (!isDragging) {
+            toggleControls();
+        }
+    };
+
     return (
-        <div className={styles.container}>
-            <div className={styles.header}>
-                <div>
-                    <button onClick={() => router.back()} className="flex items-center gap-2 text-sm opacity-70 hover:opacity-100 mb-2">
-                        <FaArrowLeft /> 목록으로
-                    </button>
-                    <h1 className={`${styles.title} premium-gradient`}>{setlist.name}</h1>
-                    <div className={styles.date}>
-                        예배 날짜: {new Date(setlist.setTargetDate).toLocaleDateString()}
-                    </div>
-                </div>
-
-                <div className={styles.controls}>
-                    <button onClick={generatePDF} disabled={generatingPdf} className={styles.primaryBtn}>
-                        {generatingPdf ? "생성 중..." : <><FaDownload /> PDF 다운로드</>}
-                    </button>
-                </div>
-            </div>
-
-            <div className={styles.viewerContainer}>
-                {setlist.songs?.map((song: any, idx: number) => (
-                    <div key={idx} className={styles.songWrapper}>
-                        <div className={styles.songHeader}>
-                            <div className={styles.songTitle}>
-                                <span className="opacity-50 text-base mr-3">#{idx + 1}</span>
-                                {song.songName}
-                            </div>
-                            <div className={styles.songMeta}>
-                                {song.songKey} • {song.songArtist}
-                            </div>
+        <div className={styles.container} onClick={handleContainerClick}>
+            {/* Top Bar (Overlay) */}
+            <AnimatePresence>
+                {showControls && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.2 }}
+                        className={styles.topBar}
+                        onClick={(e) => e.stopPropagation()} // Prevent toggling when clicking toolbar
+                    >
+                        <div className={styles.topBarContent}>
+                            <button onClick={() => router.back()} className={styles.closeBtn}>
+                                <FaArrowLeft /> 뒤로가기
+                            </button>
                         </div>
-                        {song.imageUrl ? (
-                            <img src={song.imageUrl} className={styles.sheetImage} alt={song.songName} />
+
+                        <div className={styles.topBarContent}>
+                            <button onClick={generatePDF} disabled={generatingPdf} className={styles.actionBtn}>
+                                {generatingPdf ? <span className="text-xs">生成...</span> : <FaDownload />}
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Main Content (Swipeable) */}
+            <div className={styles.mainContent}>
+                <AnimatePresence initial={false} custom={currentIndex}>
+                    <motion.div
+                        key={currentIndex}
+                        initial={{ opacity: 0, x: 100 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -100 }}
+                        transition={{
+                            x: { type: "spring", stiffness: 300, damping: 30 },
+                            opacity: { duration: 0.2 }
+                        }}
+                        style={{ position: 'absolute', width: '100%', height: '100%' }}
+                        className={styles.slideContainer}
+                        drag="x"
+                        dragConstraints={{ left: 0, right: 0 }}
+                        dragElastic={0.2}
+                        onDragStart={() => setIsDragging(true)}
+                        onDragEnd={(e, { offset }) => {
+                            setTimeout(() => setIsDragging(false), 10); // Small delay to prevent click fire
+                            const swipe = offset.x;
+                            if (swipe < -50) nextSlide();
+                            else if (swipe > 50) prevSlide();
+                        }}
+                    >
+                        {currentSlide?.imageUrl ? (
+                            <img
+                                src={currentSlide.imageUrl}
+                                className={styles.image}
+                                alt="Music Sheet"
+                            />
                         ) : (
-                            <div className="h-40 bg-[var(--surface-1)] flex items-center justify-center rounded-lg border border-[var(--surface-border)]">
-                                이미지가 없습니다
+                            <div className={styles.fallback}>
+                                <div className={styles.fallbackTitle}>{currentSlide?.songName}</div>
+                                <div>이미지가 없습니다</div>
                             </div>
                         )}
-                    </div>
-                ))}
+                    </motion.div>
+                </AnimatePresence>
+
+                {/* Navigation Arrows (Desktop) */}
+                <AnimatePresence>
+                    {showControls && currentIndex > 0 && (
+                        <motion.button
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className={`${styles.navBtn} ${styles.prevBtn}`}
+                            onClick={(e) => { e.stopPropagation(); prevSlide(); }}
+                        >
+                            <FaChevronLeft />
+                        </motion.button>
+                    )}
+                </AnimatePresence>
+                <AnimatePresence>
+                    {showControls && slides && currentIndex < slides.length - 1 && (
+                        <motion.button
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className={`${styles.navBtn} ${styles.nextBtn}`}
+                            onClick={(e) => { e.stopPropagation(); nextSlide(); }}
+                        >
+                            <FaChevronRight />
+                        </motion.button>
+                    )}
+                </AnimatePresence>
             </div>
+
+            {/* Bottom Info & Caption - Group them to toggle */}
+            <AnimatePresence>
+                {showControls && currentSlide && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ duration: 0.2 }}
+                        style={{ pointerEvents: 'none' }} // Let clicks pass through to container
+                    >
+                        <div className={styles.caption} style={{ paddingBottom: '4rem' }}>
+                            <h2 className={styles.captionTitle}>
+                                {currentSlide.totalPages > 1 && (
+                                    <span className="text-sm bg-blue-500/80 px-2 py-0.5 rounded-full mr-2 align-middle">
+                                        P{currentSlide.pageIndex + 1}
+                                    </span>
+                                )}
+                                {currentSlide.songName}
+                            </h2>
+                            <p className={styles.captionSubtitle}>
+                                {currentSlide.songKey} {currentSlide.songArtist}
+                            </p>
+                        </div>
+
+                        <div className={styles.pageIndicator}>
+                            <div className={styles.pill}>
+                                {currentIndex + 1} / {slides.length} • {setlist.name}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
