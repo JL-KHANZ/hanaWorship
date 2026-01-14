@@ -126,7 +126,7 @@
 .builderLayout {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 2rem;
+    gap: 1rem;
 }
 
 @media (min-width: 768px) {
@@ -142,7 +142,12 @@
     height: 100%;
 }
 
-.panel {
+.inputForm {
+    display: flex;
+    flex-direction: row;
+}
+
+.panelLeft {
     background: var(--surface-1);
     border: 1px solid var(--surface-border);
     border-radius: 1rem;
@@ -153,9 +158,39 @@
     margin-top: 0.5rem;
 }
 
+.panelRight {
+    background: var(--surface-1);
+    border: 1px solid var(--surface-border);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    flex: 1;
+    overflow-y: auto;
+    max-height: 60vh;
+    margin-top: 0.5rem;
+}
+
+.panelTitle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.empty {
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0.5;
+}
+
 @media (max-width: 768px) {
-    .panel {
-        max-height: 25vh;
+    .panelLeft {
+        max-height: 20vh;
+    }
+
+    .panelRight {
+        max-height: 30vh;
     }
 }
 
@@ -189,18 +224,44 @@
 }
 
 .selectedSong {
-    background: rgba(255, 255, 255, 0.05);
     margin-bottom: 0.5rem;
     border-radius: 0.5rem;
     padding: 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border: 1px solid transparent;
+    border: 2px solid var(--secondary);
 }
 
 .selectedSong:hover {
     border-color: var(--surface-border);
+}
+
+.selectedSongInfo {
+    display: flex;
+    flex-direction: row;
+    gap: 0.2rem;
+}
+
+.selectedSongNumber {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+}
+
+.selectedSongKey {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    margin-bottom: 1rem;
 }
 
 .orderControls {
@@ -249,6 +310,31 @@
     flex-direction: column;
     gap: 0rem;
     margin-bottom: 1rem;
+}
+
+.formCalendarGroup {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.calendarButton {
+    background: var(--surface-1);
+    border: 1px solid var(--surface-border);
+    color: white;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+}
+
+.calendarContainer {
+    position: absolute;
+    top: 12px;
+    left: 0;
+    z-index: 50;
+    padding: 2px;
+    background: var(--surface-1);
+    border: 1px solid var(--surface-border);
+    border-radius: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .dateInput {
@@ -366,4 +452,10 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+.songSearch {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
 }

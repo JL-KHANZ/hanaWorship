@@ -134,7 +134,7 @@ export default function NewSetlistPage() {
             <div className={styles.builderLayout}>
                 {/* Left Col: Config & Song Selection */}
                 <div className={styles.column}>
-                    <div className="bg-[var(--surface-1)] p-2 rounded-xl border border-[var(--surface-border)]">
+                    <div className={styles.inputForm}>
                         <div className={styles.formGroup}>
                             <label className="text-sm opacity-70 mb-1">콘티 이름</label>
                             <input
@@ -149,7 +149,7 @@ export default function NewSetlistPage() {
                         <div className={styles.formGroup}>
                             <label className="text-sm opacity-70 mb-1">예배 날짜</label>
                             <div className="relative">
-                                <div className="flex items-center gap-2">
+                                <div className={styles.formCalendarGroup}>
                                     <input
                                         type="text"
                                         readOnly
@@ -160,13 +160,13 @@ export default function NewSetlistPage() {
                                     />
                                     <button
                                         onClick={() => setShowCalendar(!showCalendar)}
-                                        className="p-3 bg-[var(--surface-1)] border border-[var(--surface-border)] rounded-lg hover:border-[var(--primary)] text-[var(--primary)] text-lg"
+                                        className={styles.calendarButton}
                                     >
                                         <FaCalendarAlt />
                                     </button>
                                 </div>
                                 {showCalendar && (
-                                    <div className="absolute top-12 left-0 z-50 p-2 bg-[var(--surface-1)] border border-[var(--surface-border)] rounded-xl shadow-2xl glass-panel">
+                                    <div className={styles.calendarContainer}>
                                         <div
                                             className="fixed inset-0 z-[-1]"
                                             onClick={() => setShowCalendar(false)}
@@ -192,7 +192,7 @@ export default function NewSetlistPage() {
                             </div>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-3 mb-4">
+                    <div className={styles.songSearch}>
                         <div className="relative">
                             <input
                                 className={styles.search}
@@ -239,7 +239,7 @@ export default function NewSetlistPage() {
                             </select> */}
                         </div>
                     </div>
-                    <div className={styles.panel}>
+                    <div className={styles.panelLeft}>
 
                         <div className="flex flex-col gap-1">
                             {filteredSongs.map(song => (
@@ -257,27 +257,26 @@ export default function NewSetlistPage() {
 
                 {/* Right Col: Selected & Ordering */}
                 <div className={styles.column}>
-                    <div className={styles.panel}>
-                        <h3 className="font-bold mb-4 flex justify-between">
-                            <span>선택된 곡</span>
-                            <span className="opacity-50 text-sm">{selectedSongs.length} 곡</span>
+                    <div className={styles.panelRight}>
+                        <h3 className={styles.panelTitle}>
+                            <span className="opacity-50 text-sm">{selectedSongs.length}곡 </span>
                         </h3>
 
                         {selectedSongs.length === 0 ? (
-                            <div className="h-full flex items-center justify-center opacity-30 border-2 border-dashed border-[var(--surface-border)] rounded-lg min-h-[200px]">
+                            <div className={styles.empty}>
                                 라이브러리에서 곡을 선택하세요
                             </div>
                         ) : (
-                            <div className="flex flex-col gap-2">
+                            <div>
                                 {selectedSongs.map((song, idx) => (
                                     <div key={`${song.id}-${idx}`} className={styles.selectedSong}>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-6 h-6 rounded-full bg-[var(--surface-2)] flex items-center justify-center text-xs font-bold">
-                                                {idx + 1}
+                                        <div>
+                                            <div className={styles.selectedSongInfo}>
+                                                <div className={styles.selectedSongNumber}>{idx + 1}</div>
+                                                <div className={styles.selectedSongKey}>{song.songKey}</div>
                                             </div>
                                             <div>
                                                 <div className="font-semibold">{song.songName}</div>
-                                                <div className="text-xs opacity-60">{song.songKey}</div>
                                             </div>
                                         </div>
 

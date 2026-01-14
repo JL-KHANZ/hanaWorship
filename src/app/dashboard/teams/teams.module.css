@@ -220,9 +220,16 @@
     background: var(--surface-2);
     border-radius: 0.5rem;
     margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.eventItemLink {}
+.eventItemLink {
+    text-decoration: none;
+    color: inherit;
+    width: 100%;
+}
 
 .eventItemName {
     font-weight: 700;
@@ -233,6 +240,11 @@
 
 .eventRemoveButton {
     padding: 0.5rem;
+    margin-left: 1rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: inline-block;
 }
 
 .meta {
@@ -254,4 +266,15 @@
     border: 1px solid var(--surface-border);
     border-radius: 0.5rem;
     margin-bottom: 1rem;
+}
+
+.assignButton {
+    background: var(--primary);
+    color: white;
+    padding: 0.5rem;
+    margin-left: 1rem;
+    border: none;
+    cursor: pointer;
+    display: inline-block;
+    border-radius: 0.5rem;
 }

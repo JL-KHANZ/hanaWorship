@@ -128,7 +128,7 @@ export default function TeamCalendarPage() {
                                     <span>{eventForDate.setlistName}</span>
                                 </div>
                             </Link>
-                            <button onClick={handleRemoveEvent} className={styles.eventRemoveButton}><FaTrash /></button>
+                            <button onClick={handleRemoveEvent} className={styles.eventRemoveButton}><FaTrash color="var(--primary)" /></button>
                         </div>
                     ) : (
                         <div className={styles.eventItem}>
@@ -145,7 +145,7 @@ export default function TeamCalendarPage() {
                             <button
                                 onClick={handleAssign}
                                 disabled={!selectedSetlistId}
-                                className="w-full bg-[var(--primary)] text-white py-2 rounded-lg font-semibold disabled:opacity-50"
+                                className={styles.assignButton}
                             >
                                 {selectedDate.toLocaleDateString()} 에 지정
                             </button>
