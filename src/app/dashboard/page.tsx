@@ -8,8 +8,8 @@ import { db } from "@/lib/firebase";
 import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { FaTimes, FaPen, FaSave } from "react-icons/fa";
-import { doc, updateDoc } from "firebase/firestore";
+import { FaTimes, FaPen, FaSave, FaTrash } from "react-icons/fa";
+import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 
 export default function Dashboard() {
     const { user, loading, isManager } = useAuth();
@@ -53,6 +53,34 @@ export default function Dashboard() {
         } catch (e) {
             console.error("Update failed", e);
             alert("수정 실패");
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!selectedSong) return;
+        if (!confirm(`'${selectedSong.songName}'을(를) 정말 삭제하시겠습니까?`)) return;
+
+        try {
+            // 1. Delete from ImageKit if imageIds exist
+            if (selectedSong.imageIds && selectedSong.imageIds.length > 0) {
+                await fetch("/api/imagekit/delete", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ fileIds: selectedSong.imageIds })
+                });
+            }
+
+            // 2. Delete from Firestore
+            const docRef = doc(db, "music_sheets", selectedSong.id);
+            await deleteDoc(docRef);
+
+            // 3. Close Viewer
+            setSelectedSong(null);
+            setIsEditing(false);
+            alert("삭제되었습니다.");
+        } catch (e) {
+            console.error("Delete failed", e);
+            alert("삭제 실패");
         }
     };
 
@@ -197,6 +225,7 @@ export default function Dashboard() {
                         editForm={editForm}
                         setEditForm={setEditForm}
                         handleSave={handleSave}
+                        handleDelete={handleDelete}
                         setIsEditing={setIsEditing}
                         isManager={isManager}
                         songList={filteredSongs}
@@ -209,7 +238,7 @@ export default function Dashboard() {
 }
 
 // Extracted Component for cleanliness
-function SongViewer({ modalSong, onClose, startEditing, isEditing, editForm, setEditForm, handleSave, setIsEditing, isManager, songList, onNavigate }: any) {
+function SongViewer({ modalSong, onClose, startEditing, isEditing, editForm, setEditForm, handleSave, handleDelete, setIsEditing, isManager, songList, onNavigate }: any) {
     const [showControls, setShowControls] = useState(true);
     const [currentPage, setCurrentPage] = useState(0);
 
@@ -366,11 +395,20 @@ function SongViewer({ modalSong, onClose, startEditing, isEditing, editForm, set
                                         <option value="터키어">터키어</option>
                                     </select>
                                 </div>
-                                <div className="flex gap-2 justify-end mt-4">
-                                    <button onClick={() => setIsEditing(false)} className="px-4 py-2 text-sm bg-white/10 rounded hover:bg-white/20 text-white transition-colors">취소</button>
-                                    <button onClick={handleSave} className="px-4 py-2 text-sm bg-blue-600 rounded hover:bg-blue-500 flex items-center gap-2 text-white font-medium transition-colors">
-                                        <FaSave /> 저장하기
+                                <div className="flex gap-2 justify-between mt-4">
+                                    <button
+                                        onClick={handleDelete}
+                                        className="p-2 text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                                        title="곡 삭제"
+                                    >
+                                        <FaTrash />
                                     </button>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => setIsEditing(false)} className="px-4 py-2 text-sm bg-white/10 rounded hover:bg-white/20 text-white transition-colors">취소</button>
+                                        <button onClick={handleSave} className="px-4 py-2 text-sm bg-blue-600 rounded hover:bg-blue-500 flex items-center gap-2 text-white font-medium transition-colors">
+                                            <FaSave /> 저장하기
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ) : (

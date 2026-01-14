@@ -28,6 +28,8 @@ export default function ManagerPage() {
     const [showHelp, setShowHelp] = useState(false);
     const [success, setSuccess] = useState("");
     const [uploadedImage, setUploadedImage] = useState<any>(null);
+    const [existingMatches, setExistingMatches] = useState<any[]>([]);
+    const [preCheckLoading, setPreCheckLoading] = useState(false);
 
     useEffect(() => {
         if (!loading) {
@@ -38,6 +40,50 @@ export default function ManagerPage() {
             }
         }
     }, [user, isManager, loading, router]);
+
+    // Identity Pre-check
+    useEffect(() => {
+        if (!formData.songName || formData.songName.trim().length < 2) {
+            setExistingMatches([]);
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            setPreCheckLoading(true);
+            try {
+                const q = query(
+                    collection(db, "music_sheets"),
+                    where("songName", "==", formData.songName.trim())
+                );
+                const snap = await getDocs(q);
+                const matches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                setExistingMatches(matches);
+            } catch (e) {
+                console.error("Pre-check error", e);
+            } finally {
+                setPreCheckLoading(false);
+            }
+        }, 800);
+
+        return () => clearTimeout(timer);
+    }, [formData.songName]);
+
+    // Cleanup helper
+    const cleanupUploadedImages = async (images: any[]) => {
+        if (!images || images.length === 0) return;
+        try {
+            const fileIds = images.map(img => img.fileId).filter(Boolean);
+            if (fileIds.length > 0) {
+                await fetch("/api/imagekit/delete", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ fileIds })
+                });
+            }
+        } catch (e) {
+            console.error("Cleanup failed", e);
+        }
+    };
 
     // Prevent flash of content
     if (loading || !isManager) return <div className="p-8 text-center text-white">권한 확인 중...</div>;
@@ -86,10 +132,10 @@ export default function ManagerPage() {
                 }
             });
 
-            // Prepare common data
             const mainImage = uploadedImage[0];
-            // Store all pages
+            // Store all pages and their corresponding fileIds
             const pages = uploadedImage.map((img: any) => img.url);
+            const imageIds = uploadedImage.map((img: any) => img.fileId).filter(Boolean);
 
             if (exactMatchDoc) {
                 // 3. Conflict Check (Same Song Identity found)
@@ -134,6 +180,10 @@ export default function ManagerPage() {
                     if (languageConflict) msg += `- 언어 불일치 (기존: ${existingData.songLanguage}, 입력: ${newLanguage})\n`;
                     msg += "동일한 편곡/키의 악보는 데이터가 일치해야 합니다.";
                     alert(msg);
+
+                    // Cleanup ImageKit if rejected
+                    await cleanupUploadedImages(uploadedImage);
+                    setUploadedImage(null);
                     return;
                 }
 
@@ -148,6 +198,7 @@ export default function ManagerPage() {
                     thumbnailUrl: mainImage.thumbnailUrl || mainImage.url,
                     filePath: mainImage.filePath,
                     pages: pages, // Add pages array
+                    imageIds: imageIds, // Store fileIds for future deletion
                     updatedAt: serverTimestamp(),
                     updatedBy: user?.uid
                 };
@@ -171,6 +222,7 @@ export default function ManagerPage() {
                     thumbnailUrl: mainImage.thumbnailUrl || mainImage.url,
                     filePath: mainImage.filePath,
                     pages: pages, // Add pages array
+                    imageIds: imageIds, // Store fileIds for future deletion
                     uploadedBy: user?.uid,
                     createdAt: serverTimestamp(),
                 });
@@ -210,6 +262,37 @@ export default function ManagerPage() {
         }
     };
 
+    const getIdentityStatus = () => {
+        if (preCheckLoading) return { label: "확인 중...", className: styles.statusNew };
+        if (!formData.songName || formData.songName.length < 2) return null;
+
+        const nameArtistMatch = existingMatches.filter(m =>
+            m.songName === formData.songName.trim() &&
+            m.songArtist === formData.songArtist.trim()
+        );
+
+        if (nameArtistMatch.length === 0) return { label: "✨ 신규 곡", className: styles.statusNew, conflict: false };
+
+        const exactMatch = nameArtistMatch.find(m =>
+            m.songKey === formData.songKey &&
+            m.songArrangedBy === formData.songArrangedBy
+        );
+
+        if (exactMatch) {
+            // Check conflicts
+            const hasConflict =
+                (exactMatch.songBpm && formData.songBpm && String(exactMatch.songBpm) !== String(formData.songBpm)) ||
+                (exactMatch.songLanguage && exactMatch.songLanguage !== formData.songLanguage);
+
+            if (hasConflict) return { label: "⚠️ 데이터 충돌", className: styles.statusConflict, conflict: true };
+            return { label: "📝 기존 곡 업데이트", className: styles.statusUpdate, conflict: false };
+        }
+
+        return { label: "📄 다른 버전 등록", className: styles.statusUpdate, conflict: false };
+    };
+
+    const status = getIdentityStatus();
+
     return (
         <div className={styles.container}>
             <div className="flex justify-between items-center mb-6">
@@ -221,7 +304,14 @@ export default function ManagerPage() {
             <div className={`${styles.panel} glass-panel`}>
                 <form onSubmit={handleSubmit} className={styles.form}>
                     <div className={styles.field}>
-                        <label className={styles.label}>곡 제목</label>
+                        <div className="flex justify-between items-end mb-1">
+                            <label className={styles.label}>곡 제목</label>
+                            {status && (
+                                <span className={`${styles.statusIndicator} ${status.className}`}>
+                                    {status.label}
+                                </span>
+                            )}
+                        </div>
                         <input name="songName" required value={formData.songName} onChange={handleChange} className={styles.input} placeholder="예: 은혜 아니면" />
                     </div>
 
@@ -281,7 +371,23 @@ export default function ManagerPage() {
                     </div>
 
                     <div className={styles.field}>
-                        <label className={styles.label}>악보 이미지 (여러 장 가능)</label>
+                        <div className="flex justify-between items-center mb-1">
+                            <label className={styles.label}>악보 이미지 (여러 장 가능)</label>
+                            {uploadedImage && uploadedImage.length > 0 && (
+                                <button
+                                    type="button"
+                                    className={styles.clearBtn}
+                                    onClick={async () => {
+                                        if (confirm("업로드된 모든 이미지를 삭제하시겠습니까?")) {
+                                            await cleanupUploadedImages(uploadedImage);
+                                            setUploadedImage(null);
+                                        }
+                                    }}
+                                >
+                                    전체 삭제
+                                </button>
+                            )}
+                        </div>
                         <div className={styles.uploadArea}>
                             <div className="flex flex-col gap-4 w-full">
                                 {uploadedImage && Array.isArray(uploadedImage) && uploadedImage.length > 0 && (
@@ -340,8 +446,12 @@ export default function ManagerPage() {
                         </div>
                     </div>
 
-                    <button type="submit" disabled={uploading} className={styles.submitBtn}>
-                        {uploading ? "업로드 중..." : "저장하기"}
+                    <button
+                        type="submit"
+                        disabled={uploading || status?.conflict}
+                        className={styles.submitBtn}
+                    >
+                        {uploading ? "업로드 중..." : (status?.conflict ? "충돌 해결 필요" : "저장하기")}
                     </button>
                 </form>
             </div>
