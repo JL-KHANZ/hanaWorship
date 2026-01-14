@@ -192,8 +192,8 @@
 
 /* Dot indicator for events */
 .eventDot {
-    width: 6px;
-    height: 6px;
+    width: 10px;
+    height: 10px;
     background: var(--secondary);
     border-radius: 50%;
     margin: 4px auto 0;
@@ -220,6 +220,19 @@
     background: var(--surface-2);
     border-radius: 0.5rem;
     margin-bottom: 0.5rem;
+}
+
+.eventItemLink {}
+
+.eventItemName {
+    font-weight: 700;
+    font-size: 1rem;
+    padding-inline: 1rem;
+    padding-block: 1rem;
+}
+
+.eventRemoveButton {
+    padding: 0.5rem;
 }
 
 .meta {

@@ -9,6 +9,11 @@
     margin-bottom: 2rem;
 }
 
+.headerTitle {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
 .createBtn {
     background: var(--primary);
     color: white;
@@ -24,6 +29,18 @@
 .createBtn:hover {
     background: #2563eb;
     transform: translateY(-2px);
+}
+
+.cancelBtn {
+    background: var(--surface-1);
+    color: var(--primary);
+    padding: 0.75rem 1.5rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+    display: inline-block;
 }
 
 .listGrid {
@@ -121,7 +138,7 @@
 .column {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0rem;
     height: 100%;
 }
 
@@ -133,6 +150,13 @@
     flex: 1;
     overflow-y: auto;
     max-height: 60vh;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .panel {
+        max-height: 25vh;
+    }
 }
 
 .songItem {
@@ -152,6 +176,16 @@
 .songItemAdd {
     color: var(--primary);
     font-weight: 600;
+}
+
+.songItemName {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.songItemArtist {
+    font-size: 0.8rem;
+    opacity: 0.6;
 }
 
 .selectedSong {
@@ -213,7 +247,7 @@
 .formGroup {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0rem;
     margin-bottom: 1rem;
 }
 
@@ -239,7 +273,26 @@
     background: var(--surface-1);
     border: 1px solid var(--surface-border);
     color: white;
-    margin-bottom: 1rem;
+    box-sizing: border-box;
+}
+
+.filterSelect {
+    flex: 1;
+    min-width: 80px;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-border);
+    color: white;
+    font-size: 0.85rem;
+    cursor: pointer;
+    outline: none;
+    box-sizing: border-box;
+    opacity: 0.6;
+}
+
+.filterSelect:focus {
+    border-color: var(--primary);
 }
 
 /* Calendar Overrides */

@@ -16,6 +16,9 @@ export default function NewSetlistPage() {
     const [allSongs, setAllSongs] = useState<any[]>([]);
     const [filteredSongs, setFilteredSongs] = useState<any[]>([]);
     const [search, setSearch] = useState("");
+    const [filterKey, setFilterKey] = useState("");
+    const [filterCategory, setFilterCategory] = useState("");
+    const [filterLanguage, setFilterLanguage] = useState("");
 
     const [formData, setFormData] = useState({
         name: "",
@@ -39,17 +42,36 @@ export default function NewSetlistPage() {
     }, []);
 
     useEffect(() => {
-        if (!search) {
-            setFilteredSongs(allSongs);
-        } else {
+        let results = allSongs;
+
+        if (search) {
             const lower = search.toLowerCase();
-            setFilteredSongs(allSongs.filter(s =>
+            results = results.filter(s =>
                 s.songName.toLowerCase().includes(lower) ||
                 s.songArtist?.toLowerCase().includes(lower) ||
                 s.songKey?.toLowerCase().includes(lower)
-            ));
+            );
         }
-    }, [search, allSongs]);
+
+        if (filterKey) {
+            results = results.filter(s => s.songKey === filterKey);
+        }
+
+        if (filterLanguage) {
+            results = results.filter(s => s.songLanguage === filterLanguage);
+        }
+
+        if (filterCategory) {
+            results = results.filter(s => {
+                if (Array.isArray(s.songCategory)) {
+                    return s.songCategory.includes(filterCategory);
+                }
+                return s.songCategory === filterCategory;
+            });
+        }
+
+        setFilteredSongs(results);
+    }, [search, filterKey, filterCategory, filterLanguage, allSongs]);
 
     const addSong = (song: any) => {
         setSelectedSongs([...selectedSongs, song]);
@@ -100,9 +122,9 @@ export default function NewSetlistPage() {
     return (
         <div className="animate-fade-in relative min-h-screen">
             <div className={styles.header}>
-                <h1 className="text-2xl font-bold">새 콘티 작성</h1>
+                <h1 className={styles.headerTitle}>새 콘티 작성</h1>
                 <div className="flex gap-2">
-                    <button onClick={() => router.back()} className="px-4 py-2 rounded-full border border-[var(--surface-border)] hover:bg-[var(--surface-2)]">취소</button>
+                    <button onClick={() => router.back()} className={styles.cancelBtn}>취소</button>
                     <button onClick={handleSave} disabled={saving} className={styles.createBtn}>
                         {saving ? "저장 중..." : "콘티 저장"}
                     </button>
@@ -112,7 +134,7 @@ export default function NewSetlistPage() {
             <div className={styles.builderLayout}>
                 {/* Left Col: Config & Song Selection */}
                 <div className={styles.column}>
-                    <div className="bg-[var(--surface-1)] p-4 rounded-xl border border-[var(--surface-border)]">
+                    <div className="bg-[var(--surface-1)] p-2 rounded-xl border border-[var(--surface-border)]">
                         <div className={styles.formGroup}>
                             <label className="text-sm opacity-70 mb-1">콘티 이름</label>
                             <input
@@ -170,24 +192,61 @@ export default function NewSetlistPage() {
                             </div>
                         </div>
                     </div>
-
-                    <div className={styles.panel}>
-                        <div className="relative mb-4">
-                            <FaSearch className="absolute left-3 top-3.5 opacity-50" />
+                    <div className="flex flex-col gap-3 mb-4">
+                        <div className="relative">
                             <input
                                 className={styles.search}
-                                style={{ paddingLeft: '2.5rem' }}
+                                style={{ marginBottom: 5 }}
                                 placeholder="라이브러리 검색..."
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                             />
                         </div>
+
+                        <div className="flex gap-2 flex-wrap">
+                            <select
+                                className={styles.filterSelect}
+                                value={filterKey}
+                                onChange={e => setFilterKey(e.target.value)}
+                            >
+                                <option value="">모든 키</option>
+                                {["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"].map(k => (
+                                    <option key={k} value={k}>{k}</option>
+                                ))}
+                            </select>
+
+                            <select
+                                className={styles.filterSelect}
+                                value={filterLanguage}
+                                onChange={e => setFilterLanguage(e.target.value)}
+                            >
+                                <option value="">모든 언어</option>
+                                <option value="한국어">한국어</option>
+                                <option value="영어">영어</option>
+                                <option value="아랍어">아랍어</option>
+                                <option value="터키어">터키어</option>
+                            </select>
+
+                            {/* <select
+                                className={styles.filterSelect}
+                                value={filterCategory}
+                                onChange={e => setFilterCategory(e.target.value)}
+                            >
+                                <option value="">모든 카테고리</option>
+                                <option value="상향">상향</option>
+                                <option value="하향">하향</option>
+                                <option value="기타">기타</option>
+                            </select> */}
+                        </div>
+                    </div>
+                    <div className={styles.panel}>
+
                         <div className="flex flex-col gap-1">
                             {filteredSongs.map(song => (
                                 <div key={song.id} className={styles.songItem} onClick={() => addSong(song)}>
                                     <div>
-                                        <div className="font-semibold">{song.songName}</div>
-                                        <div className="text-xs opacity-60">{song.songKey} • {song.songArtist}</div>
+                                        <div className={styles.songItemName}>{song.songName}</div>
+                                        <div className={styles.songItemArtist}>{song.songKey} • {song.songArtist}</div>
                                     </div>
                                     <FaPlus className={styles.songItemAdd} />
                                 </div>

@@ -149,7 +149,7 @@ export default function Dashboard() {
                     <option value="아랍어">아랍어</option>
                     <option value="터키어">터키어</option>
                 </select>
-                <select
+                {/* <select
                     className={styles.filterSelect}
                     value={filterCategory}
                     onChange={e => setFilterCategory(e.target.value)}
@@ -158,7 +158,7 @@ export default function Dashboard() {
                     <option value="상향">상향</option>
                     <option value="외향">외향</option>
                     <option value="내향">내향</option>
-                </select>
+                </select> */}
             </div>
 
             <div className={styles.grid}>

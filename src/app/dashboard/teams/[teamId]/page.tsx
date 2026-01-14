@@ -96,7 +96,7 @@ export default function TeamCalendarPage() {
             <div className={styles.header}>
                 <div>
                     <Link href="/dashboard/teams" className="text-sm opacity-60 hover:opacity-100 mb-2 block">← 팀 목록으로 돌아가기</Link>
-                    <h1 className="text-3xl font-bold">{team?.name} 캘린더</h1>
+                    <h1 className="text-3xl font-bold">{team?.name}</h1>
                     <p className="opacity-60 text-sm">참여 코드: {team?.joinCode} • 멤버 {team?.members?.length}명</p>
                 </div>
             </div>
@@ -123,40 +123,36 @@ export default function TeamCalendarPage() {
 
                     {eventForDate ? (
                         <div className={styles.eventItem}>
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="font-bold text-lg">{eventForDate.setlistName}</span>
-                                <button onClick={handleRemoveEvent} className="text-red-400 hover:text-red-300"><FaTrash /></button>
-                            </div>
-                            <div className={styles.meta}>assigned</div>
-                            <Link href={`/dashboard/setlists/${eventForDate.setlistId}`} className="mt-4 flex items-center gap-2 text-[var(--primary)] hover:underline text-sm font-semibold">
-                                콘티 보기 <FaExternalLinkAlt />
+                            <Link href={`/dashboard/setlists/${eventForDate.setlistId}`} className={styles.eventItemLink}>
+                                <div className={styles.eventItemName}>
+                                    <span>{eventForDate.setlistName}</span>
+                                </div>
                             </Link>
+                            <button onClick={handleRemoveEvent} className={styles.eventRemoveButton}><FaTrash /></button>
                         </div>
                     ) : (
-                        <div className="opacity-60 italic mb-4">지정된 콘티가 없습니다</div>
-                    )}
+                        <div className={styles.eventItem}>
+                            <select
+                                className={styles.select}
+                                value={selectedSetlistId}
+                                onChange={e => setSelectedSetlistId(e.target.value)}
+                            >
+                                <option value="">콘티 선택...</option>
+                                {mySetlists.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                            </select>
+                            <button
+                                onClick={handleAssign}
+                                disabled={!selectedSetlistId}
+                                className="w-full bg-[var(--primary)] text-white py-2 rounded-lg font-semibold disabled:opacity-50"
+                            >
+                                {selectedDate.toLocaleDateString()} 에 지정
+                            </button>
+                            {/* <p className="text-xs opacity-50 mt-2 text-center">내가 작성한 콘티만 표시됩니다</p> */}
 
-                    <div className={styles.assignSection}>
-                        <label className="text-sm font-bold mb-2 block">콘티 지정하기</label>
-                        <select
-                            className={styles.select}
-                            value={selectedSetlistId}
-                            onChange={e => setSelectedSetlistId(e.target.value)}
-                        >
-                            <option value="">콘티 선택...</option>
-                            {mySetlists.map(s => (
-                                <option key={s.id} value={s.id}>{s.name}</option>
-                            ))}
-                        </select>
-                        <button
-                            onClick={handleAssign}
-                            disabled={!selectedSetlistId}
-                            className="w-full bg-[var(--primary)] text-white py-2 rounded-lg font-semibold disabled:opacity-50"
-                        >
-                            {selectedDate.toLocaleDateString()} 에 지정
-                        </button>
-                        <p className="text-xs opacity-50 mt-2 text-center">내가 작성한 콘티만 표시됩니다</p>
-                    </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

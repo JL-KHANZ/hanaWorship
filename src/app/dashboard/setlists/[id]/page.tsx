@@ -97,12 +97,12 @@ export default function SetlistViewerPage() {
                 }
 
                 // Add Title
-                doc.setFontSize(16);
-                let title = `${slide.songName} (${slide.songKey})`;
-                if (slide.totalPages > 1) {
-                    title += ` - Page ${slide.pageIndex + 1}`;
-                }
-                doc.text(title, 10, 10);
+                // doc.setFontSize(16);
+                // let title = `${slide.songName} (${slide.songKey})`;
+                // if (slide.totalPages > 1) {
+                //     title += ` - Page ${slide.pageIndex + 1}`;
+                // }
+                // doc.text(title, 10, 10);
 
                 // Fetch Image
                 try {
@@ -180,7 +180,7 @@ export default function SetlistViewerPage() {
 
                         <div className={styles.topBarContent}>
                             <button onClick={generatePDF} disabled={generatingPdf} className={styles.actionBtn}>
-                                {generatingPdf ? <span className="text-xs">生成...</span> : <FaDownload />}
+                                {generatingPdf ? <span className="text-xs">다운로드 중...</span> : <FaDownload />}
                             </button>
                         </div>
                     </motion.div>
