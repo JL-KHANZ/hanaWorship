@@ -80,7 +80,7 @@ export default function LoginPage() {
                                 value={managerCode}
                                 onChange={(e) => setManagerCode(e.target.value)}
                                 className={styles.input}
-                                placeholder="매니저 권한 코드 (ADMIN123) 입력"
+                            // placeholder="매니저 권한 코드 (ADMIN123) 입력"
                             />
                         </div>
                     )}
