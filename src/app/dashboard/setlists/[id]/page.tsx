@@ -38,7 +38,7 @@ export default function SetlistViewerPage() {
 
                     // Flatten songs into slides
                     const flattened: any[] = [];
-                    data.songs.forEach((song: any) => {
+                    (data as any).songs.forEach((song: any) => {
                         const pages = song.pages && song.pages.length > 0 ? song.pages : (song.imageUrl ? [song.imageUrl] : []);
                         pages.forEach((pageUrl: string, pIndex: number) => {
                             flattened.push({
