@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
-import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
@@ -39,6 +41,9 @@ export async function GET(req: Request) {
         const uid = `kakao:${kakaoUser.id}`;
         const email = kakaoUser.kakao_account?.email || `${kakaoUser.id}@kakao.com`;
         const displayName = kakaoUser.properties?.nickname || "Kakao User";
+
+        const adminAuth = getAdminAuth();
+        const adminDb = getAdminDb();
 
         // 3. Create or update user in Firebase
         try {
