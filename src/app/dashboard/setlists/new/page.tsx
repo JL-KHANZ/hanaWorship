@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import styles from "../setlists.module.css";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
-import { FaPlus, FaArrowUp, FaArrowDown, FaTrash, FaSearch, FaCalendarAlt } from "react-icons/fa";
+import { FaPlus, FaArrowUp, FaArrowDown, FaTrash, FaSearch, FaCalendarAlt, FaCheck } from "react-icons/fa";
 
 export default function NewSetlistPage() {
     const { user } = useAuth();
@@ -74,6 +74,7 @@ export default function NewSetlistPage() {
     }, [search, filterKey, filterCategory, filterLanguage, allSongs]);
 
     const addSong = (song: any) => {
+        if (selectedSongs.some(s => s.id === song.id)) return;
         setSelectedSongs([...selectedSongs, song]);
     };
 
@@ -242,15 +243,26 @@ export default function NewSetlistPage() {
                     <div className={styles.panelLeft}>
 
                         <div className="flex flex-col gap-1">
-                            {filteredSongs.map(song => (
-                                <div key={song.id} className={styles.songItem} onClick={() => addSong(song)}>
-                                    <div>
-                                        <div className={styles.songItemName}>{song.songName}</div>
-                                        <div className={styles.songItemArtist}>{song.songKey} • {song.songArtist}</div>
+                            {filteredSongs.map(song => {
+                                const isAdded = selectedSongs.some(s => s.id === song.id);
+                                return (
+                                    <div
+                                        key={song.id}
+                                        className={`${styles.songItem} ${isAdded ? 'opacity-30 grayscale cursor-not-allowed' : ''}`}
+                                        onClick={() => !isAdded && addSong(song)}
+                                    >
+                                        <div>
+                                            <div className={styles.songItemName}>{song.songName}</div>
+                                            <div className={styles.songItemArtist}>{song.songKey} • {song.songArtist}</div>
+                                        </div>
+                                        {isAdded ? (
+                                            <FaCheck className="text-green-500" />
+                                        ) : (
+                                            <FaPlus className={styles.songItemAdd} />
+                                        )}
                                     </div>
-                                    <FaPlus className={styles.songItemAdd} />
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

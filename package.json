@@ -9,12 +9,15 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "axios": "^1.13.2",
     "firebase": "^12.7.0",
+    "firebase-admin": "^13.6.0",
     "framer-motion": "^12.23.26",
     "imagekit": "^6.0.0",
     "imagekitio-react": "^4.3.0",
     "jspdf": "^3.0.4",
     "next": "16.1.1",
+    "next-auth": "^4.24.13",
     "react": "19.2.3",
     "react-calendar": "^6.0.0",
     "react-dom": "19.2.3",

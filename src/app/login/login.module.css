@@ -158,3 +158,55 @@
     left: 20%;
     background: var(--secondary);
 }
+
+.divider {
+    display: flex;
+    align-items: center;
+    margin: 1.5rem 0;
+    color: var(--foreground);
+    opacity: 0.4;
+    font-size: 0.75rem;
+}
+
+.divider::before,
+.divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--surface-border);
+}
+
+.divider span {
+    margin: 0 1rem;
+}
+
+.kakaoButton {
+    width: 100%;
+    background: #FEE500;
+    border: none;
+    border-radius: 6px;
+    padding: 0;
+    cursor: pointer;
+    overflow: hidden;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+
+.kakaoButton:hover {
+    transform: translateY(-2px);
+}
+
+.kakaoIcon {
+    font-size: 1.25rem;
+    margin-right: 0.5rem;
+    color: #000;
+}
+
+.kakaoButton span {
+    color: #000;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
