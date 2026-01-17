@@ -8,7 +8,7 @@ import { db } from "@/lib/firebase";
 import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { FaTimes, FaPen, FaSave, FaTrash } from "react-icons/fa";
+import { FaTimes, FaPen, FaSave, FaTrash, FaHistory, FaSearch } from "react-icons/fa";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 
 export default function Dashboard() {
@@ -23,8 +23,40 @@ export default function Dashboard() {
         songName: "",
         songArtist: "",
         songKey: "",
-        songLanguage: ""
+        songLanguage: "",
+        songCategory: ""
     });
+
+    // Smart Home States
+    const [recentSearches, setRecentSearches] = useState<string[]>([]);
+    const [recentViewedIds, setRecentViewedIds] = useState<string[]>([]);
+
+    useEffect(() => {
+        const savedViewed = localStorage.getItem("recentViewedIds");
+        const savedSearches = localStorage.getItem("recentSearches");
+        if (savedViewed) setRecentViewedIds(JSON.parse(savedViewed));
+        if (savedSearches) setRecentSearches(JSON.parse(savedSearches));
+    }, []);
+
+    const addToRecentViewed = (id: string) => {
+        const updated = [id, ...recentViewedIds.filter(i => i !== id)].slice(0, 10);
+        setRecentViewedIds(updated);
+        localStorage.setItem("recentViewedIds", JSON.stringify(updated));
+    };
+
+    const addToRecentSearches = (term: string) => {
+        if (!term || term.trim().length === 0) return;
+        const updated = [term.trim(), ...recentSearches.filter(t => t !== term.trim())].slice(0, 8);
+        setRecentSearches(updated);
+        localStorage.setItem("recentSearches", JSON.stringify(updated));
+    };
+
+    const clearRecentSearch = (term: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const updated = recentSearches.filter(t => t !== term);
+        setRecentSearches(updated);
+        localStorage.setItem("recentSearches", JSON.stringify(updated));
+    };
 
     const startEditing = () => {
         if (!selectedSong) return;
@@ -32,7 +64,8 @@ export default function Dashboard() {
             songName: selectedSong.songName || "",
             songArtist: selectedSong.songArtist || "",
             songKey: selectedSong.songKey || "",
-            songLanguage: selectedSong.songLanguage || "한국어"
+            songLanguage: selectedSong.songLanguage || "한국어",
+            songCategory: Array.isArray(selectedSong.songCategory) ? selectedSong.songCategory[0] : (selectedSong.songCategory || "상향")
         });
         setIsEditing(true);
     };
@@ -45,7 +78,8 @@ export default function Dashboard() {
                 songName: editForm.songName,
                 songArtist: editForm.songArtist,
                 songKey: editForm.songKey,
-                songLanguage: editForm.songLanguage
+                songLanguage: editForm.songLanguage,
+                songCategory: [editForm.songCategory]
             });
             // Local update (optional, as snapshot listener will handle it)
             setSelectedSong({ ...selectedSong, ...editForm });
@@ -138,8 +172,40 @@ export default function Dashboard() {
             });
         }
 
+        // Sort by relevance if searching
+        if (searchTerm) {
+            const lower = searchTerm.toLowerCase();
+            results = [...results].sort((a, b) => {
+                const aName = a.songName.toLowerCase();
+                const bName = b.songName.toLowerCase();
+
+                const aStarts = aName.startsWith(lower);
+                const bStarts = bName.startsWith(lower);
+
+                if (aStarts && !bStarts) return -1;
+                if (!aStarts && bStarts) return 1;
+
+                // Both start or both don't start, use createdAt as tie-breaker
+                const aTime = a.createdAt?.seconds || 0;
+                const bTime = b.createdAt?.seconds || 0;
+                return bTime - aTime;
+            });
+        }
+
         setFilteredSongs(results);
     }, [searchTerm, filterKey, filterCategory, filterLanguage, songs]);
+
+    const showHomeView = !searchTerm && !filterKey && !filterCategory && !filterLanguage;
+    const recentViewedSongs = recentViewedIds
+        .map(id => songs.find(s => s.id === id))
+        .filter(Boolean);
+    const newArrivals = songs.slice(0, 5);
+
+    const handleSongClick = (song: any) => {
+        setSelectedSong(song);
+        addToRecentViewed(song.id);
+        if (searchTerm) addToRecentSearches(searchTerm);
+    };
 
     if (loading || !user) return null;
 
@@ -155,7 +221,21 @@ export default function Dashboard() {
                     className={styles.searchInput}
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
+                    onKeyDown={e => {
+                        if (e.key === 'Enter') addToRecentSearches(searchTerm);
+                    }}
                 />
+                <select
+                    className={styles.filterSelect}
+                    value={filterCategory}
+                    onChange={e => setFilterCategory(e.target.value)}
+                >
+                    <option value="">모든 카테고리</option>
+                    <option value="상향">상향</option>
+                    <option value="외향">외향</option>
+                    <option value="내향">내향</option>
+                    <option value="JOY">JOY</option>
+                </select>
                 <select
                     className={styles.filterSelect}
                     value={filterKey}
@@ -177,42 +257,74 @@ export default function Dashboard() {
                     <option value="아랍어">아랍어</option>
                     <option value="터키어">터키어</option>
                 </select>
-                {/* <select
-                    className={styles.filterSelect}
-                    value={filterCategory}
-                    onChange={e => setFilterCategory(e.target.value)}
-                >
-                    <option value="">모든 카테고리</option>
-                    <option value="상향">상향</option>
-                    <option value="외향">외향</option>
-                    <option value="내향">내향</option>
-                </select> */}
             </div>
 
             <div className={styles.grid}>
-                {filteredSongs.length === 0 && !fetching && (
-                    <div className={styles.emptyState}>
-                        <p>검색 결과가 없습니다.</p>
-                    </div>
-                )}
+                {showHomeView ? (
+                    <div className={styles.homeView}>
+                        {/* 1. Recently Viewed */}
+                        {recentViewedSongs.length > 0 && (
+                            <section className={styles.section}>
+                                <h2 className={styles.sectionTitle}>
+                                    <span>🕒</span> 최근 본 악보
+                                </h2>
+                                <div className={styles.horizontalScroll}>
+                                    {recentViewedSongs.map(song => (
+                                        <SongCard key={song.id} song={song} onClick={() => handleSongClick(song)} />
+                                    ))}
+                                </div>
+                            </section>
+                        )}
 
-                {filteredSongs.map((song) => (
-                    <div
-                        key={song.id}
-                        className={styles.songCard}
-                        onClick={() => setSelectedSong(song)}
-                        style={{ cursor: "pointer" }}
-                    >
+                        {/* 2. Recent Searches */}
+                        {recentSearches.length > 0 && (
+                            <section className={styles.section}>
+                                <h2 className={styles.sectionTitle}>
+                                    <span>🔍</span> 최근 검색어
+                                </h2>
+                                <div className={styles.recentSearchTags}>
+                                    {recentSearches.map((term, idx) => (
+                                        <div
+                                            key={idx}
+                                            className={styles.searchTag}
+                                            onClick={() => setSearchTerm(term)}
+                                        >
+                                            <FaSearch size={10} /> {term}
+                                            <FaTimes
+                                                className={styles.searchTagClear}
+                                                size={12}
+                                                onClick={(e) => clearRecentSearch(term, e)}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
 
-                        <div className={styles.cardContent}>
-                            <h3 className={styles.songName} title={song.songName}>{song.songName}</h3>
-                            <div className={styles.songMeta}>
-                                <span>{song.songArtist || "Unknown Artist"}</span>
-                                <span className={styles.keyBadge}>{song.songKey}</span>
+                        {/* 3. New Arrivals */}
+                        <section className={styles.section}>
+                            <h2 className={styles.sectionTitle}>
+                                <span>✨</span> 새로 올라온 악보
+                            </h2>
+                            <div className={styles.grid}>
+                                {newArrivals.map(song => (
+                                    <SongCard key={song.id} song={song} onClick={() => handleSongClick(song)} isNew />
+                                ))}
                             </div>
-                        </div>
+                        </section>
                     </div>
-                ))}
+                ) : (
+                    <>
+                        {filteredSongs.length === 0 && !fetching && (
+                            <div className={styles.emptyState}>
+                                <p>검색 결과가 없습니다.</p>
+                            </div>
+                        )}
+                        {filteredSongs.map((song) => (
+                            <SongCard key={song.id} song={song} onClick={() => handleSongClick(song)} />
+                        ))}
+                    </>
+                )}
             </div>
 
             <AnimatePresence>
@@ -394,6 +506,16 @@ function SongViewer({ modalSong, onClose, startEditing, isEditing, editForm, set
                                         <option value="아랍어">아랍어</option>
                                         <option value="터키어">터키어</option>
                                     </select>
+                                    <select
+                                        className={styles.editInput}
+                                        value={editForm.songCategory}
+                                        onChange={e => setEditForm({ ...editForm, songCategory: e.target.value })}
+                                    >
+                                        <option value="상향">상향</option>
+                                        <option value="외향">외향</option>
+                                        <option value="내향">내향</option>
+                                        <option value="JOY">JOY</option>
+                                    </select>
                                 </div>
                                 <div className="flex gap-2 justify-between mt-4">
                                     <button
@@ -447,3 +569,34 @@ function SongViewer({ modalSong, onClose, startEditing, isEditing, editForm, set
         </motion.div>
     );
 }
+// Sub-component for clean rendering
+function SongCard({ song, onClick, isNew }: { song: any, onClick: () => void, isNew?: boolean }) {
+    return (
+        <div className={styles.songCard} onClick={onClick}>
+            <div className={styles.cardContent}>
+                <div className={styles.songName}>
+                    {song.songName}
+                    {isNew && <span className={styles.newBadge}>NEW</span>}
+                </div>
+                <div className={styles.songMeta}>
+                    <span>{song.songArtist}</span>
+                    <span className={styles.keyBadge}>{song.songKey}</span>
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                    {song.songLanguage && (
+                        <span className="text-[10px] opacity-50 px-1.5 py-0.5 bg-white/5 rounded">
+                            {song.songLanguage}
+                        </span>
+                    )}
+                    {song.songCategory && (
+                        <span className="text-[10px] opacity-50 px-1.5 py-0.5 bg-white/5 rounded ml-auto">
+                            {Array.isArray(song.songCategory) ? song.songCategory[0] : song.songCategory}
+                        </span>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+const styles_sub = styles; // For subcomponent access if needed

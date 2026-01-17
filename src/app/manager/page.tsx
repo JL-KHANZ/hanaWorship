@@ -344,6 +344,7 @@ export default function ManagerPage() {
                                 <option value="상향">상향</option>
                                 <option value="외향">외향</option>
                                 <option value="내향">내향</option>
+                                <option value="JOY">JOY</option>
                             </select>
                         </div>
                     </div>

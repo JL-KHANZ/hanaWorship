@@ -70,6 +70,24 @@ export default function NewSetlistPage() {
             });
         }
 
+        // Sort by relevance if searching
+        if (search) {
+            const lower = search.toLowerCase();
+            results = [...results].sort((a, b) => {
+                const aName = a.songName.toLowerCase();
+                const bName = b.songName.toLowerCase();
+
+                const aStarts = aName.startsWith(lower);
+                const bStarts = bName.startsWith(lower);
+
+                if (aStarts && !bStarts) return -1;
+                if (!aStarts && bStarts) return 1;
+
+                // Tie-breaker: creation date (assuming it exists or fallback)
+                return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+            });
+        }
+
         setFilteredSongs(results);
     }, [search, filterKey, filterCategory, filterLanguage, allSongs]);
 
@@ -228,16 +246,17 @@ export default function NewSetlistPage() {
                                 <option value="터키어">터키어</option>
                             </select>
 
-                            {/* <select
+                            <select
                                 className={styles.filterSelect}
                                 value={filterCategory}
                                 onChange={e => setFilterCategory(e.target.value)}
                             >
                                 <option value="">모든 카테고리</option>
                                 <option value="상향">상향</option>
-                                <option value="하향">하향</option>
-                                <option value="기타">기타</option>
-                            </select> */}
+                                <option value="외향">외향</option>
+                                <option value="내향">내향</option>
+                                <option value="JOY">JOY</option>
+                            </select>
                         </div>
                     </div>
                     <div className={styles.panelLeft}>
