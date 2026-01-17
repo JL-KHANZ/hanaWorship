@@ -77,7 +77,7 @@ export default function TeamsPage() {
     return (
         <div className="animate-fade-in relative">
             <div className={styles.header}>
-                <h1 className="text-3xl font-bold">워십 팀</h1>
+                <h1 className={styles.title}>워십 팀</h1>
                 <div className={styles.actionBtns}>
                     <button onClick={() => setShowJoin(true)} className={styles.joinBtn}>팀 가입하기</button>
                     <button onClick={() => setShowCreate(true)} className={styles.createBtn}>+ 팀 만들기</button>
@@ -97,11 +97,11 @@ export default function TeamsPage() {
                             <div className={styles.teamName}>{team.name}</div>
                             <p className="opacity-70 text-sm mb-4">{team.description}</p>
                         </div>
-                        <div className="flex items-center gap-2 text-sm opacity-60">
+                        <div className={styles.memberCount}>
                             <FaUsers />
                             <span>{team.members.length} Members</span>
                         </div>
-                        <div className="mt-4 text-xs font-mono bg-black/30 p-2 rounded inline-block w-fit">
+                        <div className={styles.memberCount}>
                             Code: {team.joinCode}
                         </div>
                     </Link>

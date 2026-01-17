@@ -33,13 +33,13 @@ export default function SetlistsPage() {
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <h1 className="text-3xl font-bold">내 콘티</h1>
+                <h1 className={styles.title}>내 콘티</h1>
                 <Link href="/dashboard/setlists/new" className={styles.createBtn}>+ 새 콘티 만들기</Link>
             </div>
 
             <div className={styles.listGrid}>
                 {setlists.length === 0 && (
-                    <div className="col-span-full text-center p-12 opacity-50 border-2 border-dashed border-[var(--surface-border)] rounded-xl">
+                    <div className={styles.emptyState}>
                         <p>아직 콘티가 없습니다. 새로운 콘티를 만들어보세요!</p>
                     </div>
                 )}

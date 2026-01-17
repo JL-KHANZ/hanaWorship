@@ -225,43 +225,68 @@ export default function Dashboard() {
                         if (e.key === 'Enter') addToRecentSearches(searchTerm);
                     }}
                 />
-                <select
-                    className={styles.filterSelect}
-                    value={filterCategory}
-                    onChange={e => setFilterCategory(e.target.value)}
-                >
-                    <option value="">모든 카테고리</option>
-                    <option value="상향">상향</option>
-                    <option value="외향">외향</option>
-                    <option value="내향">내향</option>
-                    <option value="JOY">JOY</option>
-                </select>
-                <select
-                    className={styles.filterSelect}
-                    value={filterKey}
-                    onChange={e => setFilterKey(e.target.value)}
-                >
-                    <option value="">모든 키 (Key)</option>
-                    {["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"].map(k => (
-                        <option key={k} value={k}>{k}</option>
-                    ))}
-                </select>
-                <select
-                    className={styles.filterSelect}
-                    value={filterLanguage}
-                    onChange={e => setFilterLanguage(e.target.value)}
-                >
-                    <option value="">모든 언어</option>
-                    <option value="한국어">한국어</option>
-                    <option value="영어">영어</option>
-                    <option value="아랍어">아랍어</option>
-                    <option value="터키어">터키어</option>
-                </select>
+                {/* Recent Searches */}
+                {/* {recentSearches.length > 0 && (
+                        <section>
+                            <div className={styles.recentSearchTags}>
+                                {recentSearches.map((term, idx) => (
+                                    <div
+                                        key={idx}
+                                        className={styles.searchTag}
+                                        onClick={() => setSearchTerm(term)}
+                                    >
+                                        <FaSearch size={10} /> {term}
+                                        <FaTimes
+                                            className={styles.searchTagClear}
+                                            size={12}
+                                            onClick={(e) => clearRecentSearch(term, e)}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )} */}
+
+                <div className={styles.filterBarSelectContainer}>
+                    <select
+                        className={styles.filterSelect}
+                        value={filterCategory}
+                        onChange={e => setFilterCategory(e.target.value)}
+                    >
+                        <option value="">모든 카테고리</option>
+                        <option value="상향">상향</option>
+                        <option value="외향">외향</option>
+                        <option value="내향">내향</option>
+                        <option value="JOY">JOY</option>
+                    </select>
+                    <select
+                        className={styles.filterSelect}
+                        value={filterKey}
+                        onChange={e => setFilterKey(e.target.value)}
+                    >
+                        <option value="">모든 키 (Key)</option>
+                        {["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"].map(k => (
+                            <option key={k} value={k}>{k}</option>
+                        ))}
+                    </select>
+                    <select
+                        className={styles.filterSelect}
+                        value={filterLanguage}
+                        onChange={e => setFilterLanguage(e.target.value)}
+                    >
+                        <option value="">모든 언어</option>
+                        <option value="한국어">한국어</option>
+                        <option value="영어">영어</option>
+                        <option value="아랍어">아랍어</option>
+                        <option value="터키어">터키어</option>
+                    </select>
+                </div>
             </div>
 
             <div className={styles.grid}>
                 {showHomeView ? (
                     <div className={styles.homeView}>
+
                         {/* 1. Recently Viewed */}
                         {recentViewedSongs.length > 0 && (
                             <section className={styles.section}>
@@ -276,32 +301,7 @@ export default function Dashboard() {
                             </section>
                         )}
 
-                        {/* 2. Recent Searches */}
-                        {recentSearches.length > 0 && (
-                            <section className={styles.section}>
-                                <h2 className={styles.sectionTitle}>
-                                    <span>🔍</span> 최근 검색어
-                                </h2>
-                                <div className={styles.recentSearchTags}>
-                                    {recentSearches.map((term, idx) => (
-                                        <div
-                                            key={idx}
-                                            className={styles.searchTag}
-                                            onClick={() => setSearchTerm(term)}
-                                        >
-                                            <FaSearch size={10} /> {term}
-                                            <FaTimes
-                                                className={styles.searchTagClear}
-                                                size={12}
-                                                onClick={(e) => clearRecentSearch(term, e)}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
-                        )}
-
-                        {/* 3. New Arrivals */}
+                        {/* 2. New Arrivals */}
                         <section className={styles.section}>
                             <h2 className={styles.sectionTitle}>
                                 <span>✨</span> 새로 올라온 악보
@@ -581,18 +581,6 @@ function SongCard({ song, onClick, isNew }: { song: any, onClick: () => void, is
                 <div className={styles.songMeta}>
                     <span>{song.songArtist}</span>
                     <span className={styles.keyBadge}>{song.songKey}</span>
-                </div>
-                <div className="flex justify-between items-center mt-1">
-                    {song.songLanguage && (
-                        <span className="text-[10px] opacity-50 px-1.5 py-0.5 bg-white/5 rounded">
-                            {song.songLanguage}
-                        </span>
-                    )}
-                    {song.songCategory && (
-                        <span className="text-[10px] opacity-50 px-1.5 py-0.5 bg-white/5 rounded ml-auto">
-                            {Array.isArray(song.songCategory) ? song.songCategory[0] : song.songCategory}
-                        </span>
-                    )}
                 </div>
             </div>
         </div>
