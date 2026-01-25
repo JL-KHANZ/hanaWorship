@@ -1,24 +1,37 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, orderBy, getDocs, addDoc, serverTimestamp, doc, getDoc, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import styles from "../setlists.module.css";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
-import { FaPlus, FaArrowUp, FaArrowDown, FaTrash, FaSearch, FaCalendarAlt, FaCheck } from "react-icons/fa";
+import { FaPlus, FaArrowUp, FaArrowDown, FaTrash, FaSearch, FaCalendarAlt, FaCheck, FaTimes, FaFilter } from "react-icons/fa";
+import SongViewer from "../../components/SongViewer";
+import { AnimatePresence } from "framer-motion";
 
-export default function NewSetlistPage() {
+function NewSetlistContent() {
     const { user } = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const editSetId = searchParams.get("editSetId");
+    const initSongId = searchParams.get("songId");
+
+    // Initial Filter Params
+    const initQ = searchParams.get("q") || "";
+    const initKey = searchParams.get("key") || "";
+    const initLang = searchParams.get("lang") || "";
+    const initCat = searchParams.get("cat") || "";
 
     const [allSongs, setAllSongs] = useState<any[]>([]);
     const [filteredSongs, setFilteredSongs] = useState<any[]>([]);
-    const [search, setSearch] = useState("");
-    const [filterKey, setFilterKey] = useState("");
-    const [filterCategory, setFilterCategory] = useState("");
-    const [filterLanguage, setFilterLanguage] = useState("");
+
+    const [search, setSearch] = useState(initQ);
+    const [filterKey, setFilterKey] = useState(initKey);
+    const [filterCategory, setFilterCategory] = useState(initCat);
+    const [filterLanguage, setFilterLanguage] = useState(initLang);
 
     const [formData, setFormData] = useState({
         name: "",
@@ -28,6 +41,12 @@ export default function NewSetlistPage() {
     const [selectedSongs, setSelectedSongs] = useState<any[]>([]);
     const [saving, setSaving] = useState(false);
     const [showCalendar, setShowCalendar] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    // Viewing state for preview
+    const [viewingSong, setViewingSong] = useState<any>(null);
+    const [showFilters, setShowFilters] = useState(false);
 
     useEffect(() => {
         // Fetch songs once
@@ -37,9 +56,43 @@ export default function NewSetlistPage() {
             const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             setAllSongs(data);
             setFilteredSongs(data);
+            setLoading(false);
         };
         fetchSongs();
     }, []);
+
+    // Handle Edit Mode or Init Song
+    useEffect(() => {
+        if (loading) return;
+
+        // If Editing
+        if (editSetId) {
+            const fetchSet = async () => {
+                const docRef = doc(db, "setlists", editSetId);
+                const snap = await getDoc(docRef);
+                if (snap.exists()) {
+                    const data = snap.data();
+                    setFormData({
+                        name: data.name,
+                        targetDate: data.setTargetDate || new Date().toISOString().split('T')[0]
+                    });
+                    setSelectedSongs(data.songs || []);
+                    setIsEditing(true);
+                }
+            };
+            fetchSet();
+        }
+        // If Creating with predefined song
+        else if (initSongId && allSongs.length > 0) {
+            // Check if already added to avoid duplicates on re-renders (though useEffect dependency handles this mostly)
+            if (selectedSongs.length === 0) {
+                const song = allSongs.find(s => s.id === initSongId);
+                if (song) {
+                    setSelectedSongs([song]);
+                }
+            }
+        }
+    }, [editSetId, initSongId, allSongs, loading]);
 
     useEffect(() => {
         let results = allSongs;
@@ -91,7 +144,8 @@ export default function NewSetlistPage() {
         setFilteredSongs(results);
     }, [search, filterKey, filterCategory, filterLanguage, allSongs]);
 
-    const addSong = (song: any) => {
+    const addSong = (song: any, e?: React.MouseEvent) => {
+        e?.stopPropagation();
         if (selectedSongs.some(s => s.id === song.id)) return;
         setSelectedSongs([...selectedSongs, song]);
     };
@@ -123,14 +177,22 @@ export default function NewSetlistPage() {
         }
         setSaving(true);
         try {
-            await addDoc(collection(db, "setlists"), {
-                name: formData.name,
-                setTargetDate: formData.targetDate,
-                setOwner: user?.uid,
-                setCreatedDate: serverTimestamp(),
-                songs: selectedSongs, // storing full song objects for simplicity and snapshot preservation
-            });
-            router.push("/dashboard/setlists");
+            if (isEditing && editSetId) {
+                await updateDoc(doc(db, "setlists", editSetId), {
+                    name: formData.name,
+                    setTargetDate: formData.targetDate,
+                    songs: selectedSongs,
+                });
+            } else {
+                await addDoc(collection(db, "setlists"), {
+                    name: formData.name,
+                    setTargetDate: formData.targetDate,
+                    setOwner: user?.uid,
+                    setCreatedDate: serverTimestamp(),
+                    songs: selectedSongs, // storing full song objects for simplicity and snapshot preservation
+                });
+            }
+            router.back(); // Go back to preserve history (either set viewer or song viewer)
         } catch (error) {
             console.error(error);
             alert("Failed to save setlist");
@@ -141,11 +203,11 @@ export default function NewSetlistPage() {
     return (
         <div className="animate-fade-in relative min-h-screen">
             <div className={styles.header}>
-                <h1 className={styles.headerTitle}>새 콘티 작성</h1>
+                <h1 className={styles.headerTitle}>{isEditing ? "콘티 수정" : "새 콘티 작성"}</h1>
                 <div className="flex gap-2">
                     <button onClick={() => router.back()} className={styles.cancelBtn}>취소</button>
                     <button onClick={handleSave} disabled={saving} className={styles.createBtn}>
-                        {saving ? "저장 중..." : "콘티 저장"}
+                        {saving ? "저장 중..." : (isEditing ? "수정 완료" : "콘티 저장")}
                     </button>
                 </div>
             </div>
@@ -157,8 +219,7 @@ export default function NewSetlistPage() {
                         <div className={styles.formGroup}>
                             <label className="text-sm opacity-70 mb-1">콘티 이름</label>
                             <input
-                                className={styles.search}
-                                style={{ marginBottom: 0 }}
+                                className={`${styles.search} ${styles.mb0}`}
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 placeholder="예: 주일 오전 예배"
@@ -212,77 +273,124 @@ export default function NewSetlistPage() {
                         </div>
                     </div>
                     <div className={styles.songSearch}>
-                        <div className="relative">
+                        <div className={styles.searchInputContainer}>
                             <input
-                                className={styles.search}
-                                style={{ marginBottom: 5 }}
+                                className={styles.songSearchInput}
                                 placeholder="라이브러리 검색..."
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                             />
+                            {search && (
+                                <button
+                                    onClick={() => setSearch("")}
+                                    className={styles.clearBtn}
+                                >
+                                    <FaTimes />
+                                </button>
+                            )}
                         </div>
 
-                        <div className="flex gap-2 flex-wrap">
-                            <select
-                                className={styles.filterSelect}
-                                value={filterKey}
-                                onChange={e => setFilterKey(e.target.value)}
+                        <div className={styles.filterPopupContainer}>
+                            <button
+                                className={`${styles.filterBtn} ${showFilters || filterKey || filterLanguage || filterCategory ? styles.filterBtnActive : ''}`}
+                                onClick={() => setShowFilters(!showFilters)}
+                                title="필터 옵션"
                             >
-                                <option value="">모든 키</option>
-                                {["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"].map(k => (
-                                    <option key={k} value={k}>{k}</option>
-                                ))}
-                            </select>
+                                <FaFilter size={14} />
+                            </button>
 
-                            <select
-                                className={styles.filterSelect}
-                                value={filterLanguage}
-                                onChange={e => setFilterLanguage(e.target.value)}
-                            >
-                                <option value="">모든 언어</option>
-                                <option value="한국어">한국어</option>
-                                <option value="영어">영어</option>
-                                <option value="아랍어">아랍어</option>
-                                <option value="터키어">터키어</option>
-                            </select>
+                            {showFilters && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setShowFilters(false)}></div>
+                                    <div className={styles.filterPopup}>
+                                        <div>
+                                            <div className={styles.filterPopupLabel}>Key</div>
+                                            <select
+                                                className={`${styles.filterSelect} ${styles.fullWidth}`}
+                                                value={filterKey}
+                                                onChange={e => setFilterKey(e.target.value)}
+                                            >
+                                                <option value="">모든 키</option>
+                                                {["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"].map(k => (
+                                                    <option key={k} value={k}>{k}</option>
+                                                ))}
+                                            </select>
+                                        </div>
 
-                            <select
-                                className={styles.filterSelect}
-                                value={filterCategory}
-                                onChange={e => setFilterCategory(e.target.value)}
-                            >
-                                <option value="">모든 카테고리</option>
-                                <option value="상향">상향</option>
-                                <option value="외향">외향</option>
-                                <option value="내향">내향</option>
-                                <option value="JOY">JOY</option>
-                            </select>
+                                        <div>
+                                            <div className={styles.filterPopupLabel}>언어</div>
+                                            <select
+                                                className={`${styles.filterSelect} ${styles.fullWidth}`}
+                                                value={filterLanguage}
+                                                onChange={e => setFilterLanguage(e.target.value)}
+                                            >
+                                                <option value="">모든 언어</option>
+                                                <option value="한국어">한국어</option>
+                                                <option value="영어">영어</option>
+                                                <option value="아랍어">아랍어</option>
+                                                <option value="터키어">터키어</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <div className={styles.filterPopupLabel}>카테고리</div>
+                                            <select
+                                                className={`${styles.filterSelect} ${styles.fullWidth}`}
+                                                value={filterCategory}
+                                                onChange={e => setFilterCategory(e.target.value)}
+                                            >
+                                                <option value="">모든 카테고리</option>
+                                                <option value="상향">상향</option>
+                                                <option value="외향">외향</option>
+                                                <option value="내향">내향</option>
+                                                <option value="JOY">JOY</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
+
+                    {/* Left Col: Find and Select */}
                     <div className={styles.panelLeft}>
 
-                        <div className="flex flex-col gap-1">
-                            {filteredSongs.map(song => {
-                                const isAdded = selectedSongs.some(s => s.id === song.id);
-                                return (
-                                    <div
-                                        key={song.id}
-                                        className={`${styles.songItem} ${isAdded ? 'opacity-30 grayscale cursor-not-allowed' : ''}`}
-                                        onClick={() => !isAdded && addSong(song)}
-                                    >
-                                        <div>
-                                            <div className={styles.songItemName}>{song.songName}</div>
-                                            <div className={styles.songItemArtist}>{song.songKey} • {song.songArtist}</div>
+
+                        {filteredSongs.length === 0 ? (
+                            <div className={styles.empty}>
+                                결과 없음
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-1">
+                                {filteredSongs.map(song => {
+                                    const isAdded = selectedSongs.some(s => s.id === song.id);
+                                    return (
+                                        <div
+                                            key={song.id}
+                                            className={`${styles.songItem}`}
+                                            onClick={() => setViewingSong(song)}
+                                        >
+                                            <div className={isAdded ? 'opacity-50' : ''}>
+                                                <div className={styles.songItemName}>{song.songName}</div>
+                                                <div className={styles.songItemArtist}>{song.songKey} • {song.songArtist}</div>
+                                            </div>
+                                            {isAdded ? (
+                                                <div className="p-2">
+                                                    <FaCheck className="text-green-500" />
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    className={styles.addBtn}
+                                                    onClick={(e) => addSong(song, e)}
+                                                >
+                                                    <FaPlus className={styles.songItemAdd} />
+                                                </button>
+                                            )}
                                         </div>
-                                        {isAdded ? (
-                                            <FaCheck className="text-green-500" />
-                                        ) : (
-                                            <FaPlus className={styles.songItemAdd} />
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -329,6 +437,27 @@ export default function NewSetlistPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Song Preview Modal */}
+            <AnimatePresence>
+                {viewingSong && (
+                    <SongViewer
+                        modalSong={viewingSong}
+                        onClose={() => setViewingSong(null)}
+                        // Read-only mode for preview
+                        handleCreateSet={undefined}
+                        isManager={false}
+                    />
+                )}
+            </AnimatePresence>
         </div>
+    );
+}
+
+export default function NewSetlistPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <NewSetlistContent />
+        </Suspense>
     );
 }

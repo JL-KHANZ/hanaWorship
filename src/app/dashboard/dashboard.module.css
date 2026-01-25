@@ -33,20 +33,50 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
+.searchInputContainer {
+    position: relative;
+    flex: 1;
+    display: flex;
+    /* Ensures items inside align properly */
+    align-items: center;
+    background: var(--surface-2);
+    /* Moved from .searchInput */
+    border: 1px solid var(--surface-border);
+    /* Moved from .searchInput */
+    border-radius: 0.5rem;
+    transition: border-color 0.2s;
+    width: 100%;
+    /* Ensures it fills available horizontal space */
+}
+
+/* Change border color of the container when the input inside is focused */
+.searchInputContainer:focus-within {
+    border-color: var(--primary);
+}
+
 .searchInput {
     flex: 1;
     min-width: 0;
     padding: 0.7rem 0.8rem;
-    border-radius: 0.5rem;
-    background: var(--surface-2);
-    border: 1px solid var(--surface-border);
+    background: transparent;
+    border: none;
     color: white;
     font-size: 0.8rem;
+    outline: none;
 }
 
-.searchInput:focus {
+.clearButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--foreground);
+    background: transparent;
+    border: none;
     outline: none;
-    border-color: var(--primary);
+    font-size: 1.2rem;
+    padding: 0 0.8rem;
+    cursor: pointer;
+    transition: color 0.2s;
 }
 
 .filterSelect {

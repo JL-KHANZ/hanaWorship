@@ -2,10 +2,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import styles from "./viewer.module.css";
 import { AnimatePresence, motion } from "framer-motion";
-import { FaDownload, FaArrowLeft, FaPrint, FaPlay, FaTimes, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { FaDownload, FaArrowLeft, FaPrint, FaPlay, FaTimes, FaChevronLeft, FaChevronRight, FaPen, FaTrash } from "react-icons/fa";
 import jsPDF from "jspdf";
 
 export default function SetlistViewerPage() {
@@ -25,6 +25,21 @@ export default function SetlistViewerPage() {
     const [isDragging, setIsDragging] = useState(false);
 
     const toggleControls = () => setShowControls(prev => !prev);
+
+    const handleEdit = () => {
+        router.push(`/dashboard/setlists/new?editSetId=${id}`);
+    };
+
+    const handleDelete = async () => {
+        if (!confirm("정말 이 콘티를 삭제하시겠습니까?")) return;
+        try {
+            await deleteDoc(doc(db, "setlists", id as string));
+            router.push("/dashboard/setlists");
+        } catch (e) {
+            console.error(e);
+            alert("삭제 실패");
+        }
+    };
 
     useEffect(() => {
         if (!id) return;
@@ -196,7 +211,13 @@ export default function SetlistViewerPage() {
                         </div>
 
                         <div className={styles.topBarContent}>
-                            <button onClick={generatePDF} disabled={generatingPdf} className={styles.actionBtn}>
+                            <button onClick={handleEdit} className={styles.actionBtn} title="수정">
+                                <FaPen />
+                            </button>
+                            <button onClick={handleDelete} className={`${styles.actionBtn} text-red-500`} title="삭제">
+                                <FaTrash />
+                            </button>
+                            <button onClick={generatePDF} disabled={generatingPdf} className={styles.actionBtn} title="PDF 다운로드">
                                 {generatingPdf ? <span className="text-xs">다운로드 중...</span> : <FaDownload />}
                             </button>
                         </div>
@@ -209,7 +230,6 @@ export default function SetlistViewerPage() {
                 <AnimatePresence initial={false} custom={currentIndex}>
                     <motion.div
                         key={currentIndex}
-                        // Ensure y is never part of the animation cycle
                         initial={{ opacity: 0, x: 100 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -100 }}
@@ -221,11 +241,11 @@ export default function SetlistViewerPage() {
                             position: 'absolute',
                             width: '100%',
                             height: '100%',
-                            touchAction: 'pan-y' // CRITICAL: Allows vertical scrolling but lets Framer handle horizontal
+                            touchAction: 'pan-y'
                         }}
                         className={styles.slideContainer}
-                        drag="x" // Restricts dragging to the horizontal axis
-                        dragDirectionLock // Stops diagonal dragging from "bleeding" into the wrong axis
+                        drag="x"
+                        dragDirectionLock
                         dragConstraints={{ left: 0, right: 0 }}
                         dragElastic={0.2}
                         onDragStart={() => setIsDragging(true)}
