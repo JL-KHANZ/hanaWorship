@@ -115,10 +115,27 @@ export default function SetlistViewerPage() {
                     });
 
                     const imgProps = doc.getImageProperties(base64 as string);
-                    const pdfWidth = doc.internal.pageSize.getWidth();
-                    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    const pageWidth = doc.internal.pageSize.getWidth();
+                    const pageHeight = doc.internal.pageSize.getHeight();
 
-                    doc.addImage(base64 as string, 'JPEG', 0, 20, pdfWidth, pdfHeight);
+                    // Account for your top margin (y = 20)
+                    const margin = 20;
+                    const maxAvailableWidth = pageWidth;
+                    const maxAvailableHeight = pageHeight - margin;
+
+                    let finalWidth = maxAvailableWidth;
+                    let finalHeight = (imgProps.height * maxAvailableWidth) / imgProps.width;
+
+                    // If the calculated height is still too tall for the page, scale by height instead
+                    if (finalHeight > maxAvailableHeight) {
+                        finalHeight = maxAvailableHeight;
+                        finalWidth = (imgProps.width * maxAvailableHeight) / imgProps.height;
+                    }
+
+                    // Center the image horizontally if it's scaled by height
+                    const xOffset = (pageWidth - finalWidth) / 2;
+
+                    doc.addImage(base64 as string, 'JPEG', xOffset, margin, finalWidth, finalHeight);
                     pageAdded = true;
                 } catch (err) {
                     console.error("Failed to load image for PDF", err);
@@ -192,6 +209,7 @@ export default function SetlistViewerPage() {
                 <AnimatePresence initial={false} custom={currentIndex}>
                     <motion.div
                         key={currentIndex}
+                        // Ensure y is never part of the animation cycle
                         initial={{ opacity: 0, x: 100 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -100 }}
@@ -199,14 +217,20 @@ export default function SetlistViewerPage() {
                             x: { type: "spring", stiffness: 300, damping: 30 },
                             opacity: { duration: 0.2 }
                         }}
-                        style={{ position: 'absolute', width: '100%', height: '100%' }}
+                        style={{
+                            position: 'absolute',
+                            width: '100%',
+                            height: '100%',
+                            touchAction: 'pan-y' // CRITICAL: Allows vertical scrolling but lets Framer handle horizontal
+                        }}
                         className={styles.slideContainer}
-                        drag="x"
+                        drag="x" // Restricts dragging to the horizontal axis
+                        dragDirectionLock // Stops diagonal dragging from "bleeding" into the wrong axis
                         dragConstraints={{ left: 0, right: 0 }}
                         dragElastic={0.2}
                         onDragStart={() => setIsDragging(true)}
                         onDragEnd={(e, { offset }) => {
-                            setTimeout(() => setIsDragging(false), 10); // Small delay to prevent click fire
+                            setTimeout(() => setIsDragging(false), 10);
                             const swipe = offset.x;
                             if (swipe < -50) nextSlide();
                             else if (swipe > 50) prevSlide();
