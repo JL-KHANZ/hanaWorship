@@ -172,8 +172,8 @@ function NewSetlistContent() {
 
     const handleSave = async () => {
         if (!formData.name) {
-            alert("Please name your setlist");
-            return;
+            setFormData({ ...formData, name: formData.targetDate })
+            // return;
         }
         setSaving(true);
         try {
@@ -195,7 +195,7 @@ function NewSetlistContent() {
             router.back(); // Go back to preserve history (either set viewer or song viewer)
         } catch (error) {
             console.error(error);
-            alert("Failed to save setlist");
+            alert("콘티 저장 실패");
             setSaving(false);
         }
     };
@@ -217,17 +217,15 @@ function NewSetlistContent() {
                 <div className={styles.column}>
                     <div className={styles.inputForm}>
                         <div className={styles.formGroup}>
-                            <label className="text-sm opacity-70 mb-1">콘티 이름</label>
                             <input
                                 className={`${styles.search} ${styles.mb0}`}
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                placeholder="예: 주일 오전 예배"
+                                placeholder={`이름(${formData.targetDate})`}
                                 autoFocus
                             />
                         </div>
-                        <div className={styles.formGroup}>
-                            <label className="text-sm opacity-70 mb-1">예배 날짜</label>
+                        <div className={styles.formGroup2}>
                             <div className="relative">
                                 <div className={styles.formCalendarGroup}>
                                     <input
@@ -272,6 +270,7 @@ function NewSetlistContent() {
                             </div>
                         </div>
                     </div>
+                    <div className={styles.divider}></div>
                     <div className={styles.songSearch}>
                         <div className={styles.searchInputContainer}>
                             <input
@@ -398,7 +397,7 @@ function NewSetlistContent() {
                 <div className={styles.column}>
                     <div className={styles.panelRight}>
                         <h3 className={styles.panelTitle}>
-                            <span className="opacity-50 text-sm">{selectedSongs.length}곡 </span>
+                            <span className={styles.songCountText}>{selectedSongs.length}곡 </span>
                         </h3>
 
                         {selectedSongs.length === 0 ? (
