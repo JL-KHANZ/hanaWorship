@@ -1,14 +1,14 @@
 "use client";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import styles from "./dashboard.module.css";
 
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, getDocs, startAfter, limit, where, DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { FaTimes, FaPen, FaSave, FaTrash, FaHistory, FaSearch, FaPlus } from "react-icons/fa";
+import { FaTimes, FaPen, FaSave, FaTrash, FaHistory, FaSearch, FaPlus, FaChevronDown } from "react-icons/fa";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import SongViewer from "./components/SongViewer";
 
@@ -125,76 +125,89 @@ export default function Dashboard() {
     const [filterCategory, setFilterCategory] = useState("");
     const [filterLanguage, setFilterLanguage] = useState("");
 
-    useEffect(() => {
-        if (!loading) {
-            if (!user) {
-                router.push("/login");
-                return;
+    // Pagination State
+    const [lastVisible, setLastVisible] = useState<any>(null);
+    const [hasMore, setHasMore] = useState(true);
+    const SONGS_PER_PAGE = 20;
+
+    // Fetch Songs Function
+    const fetchSongs = async (isLoadMore = false) => {
+        setFetching(true);
+        try {
+            let q = query(collection(db, "music_sheets"));
+
+            // Apply Filters (Server-Side)
+            const constraints: any[] = [];
+
+            if (searchTerm) {
+                // Simple prefix search for songName
+                // Note: Firestore doesn't support multiple range filters or case-insensitive search easily.
+                // We will rely on client-side sorting/filtering for complex text search if needed, 
+                // OR implementation of a simple prefix match. For now, strict prefix match:
+                constraints.push(where("songName", ">=", searchTerm));
+                constraints.push(where("songName", "<=", searchTerm + "\uf8ff"));
+            } else {
+                constraints.push(orderBy("createdAt", "desc"));
             }
 
-            const q = query(collection(db, "music_sheets"), orderBy("createdAt", "desc"));
-            const unsubscribe = onSnapshot(q, (snapshot) => {
-                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                setSongs(data);
-                setFilteredSongs(data);
-                setFetching(false);
-            });
-            return () => unsubscribe();
-        }
-    }, [user, loading, router]);
+            if (filterKey) constraints.push(where("songKey", "==", filterKey));
+            if (filterLanguage) constraints.push(where("songLanguage", "==", filterLanguage));
+            if (filterCategory) constraints.push(where("songCategory", "array-contains", filterCategory));
 
-    // Filtering Effect
+            // Pagination
+            if (isLoadMore && lastVisible) {
+                constraints.push(startAfter(lastVisible));
+            }
+
+            constraints.push(limit(SONGS_PER_PAGE));
+
+            q = query(collection(db, "music_sheets"), ...constraints);
+
+            const snapshot = await getDocs(q);
+            const newSongs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            if (snapshot.docs.length < SONGS_PER_PAGE) {
+                setHasMore(false);
+            } else {
+                setHasMore(true);
+            }
+
+            if (snapshot.docs.length > 0) {
+                setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+            }
+
+            if (isLoadMore) {
+                setSongs(prev => [...prev, ...newSongs]);
+                setFilteredSongs(prev => [...prev, ...newSongs]);
+            } else {
+                setSongs(newSongs);
+                setFilteredSongs(newSongs); // In this new model, filteredSongs is just the displayed songs
+            }
+        } catch (error) {
+            console.error("Error fetching songs:", error);
+        } finally {
+            setFetching(false);
+        }
+    };
+
+    // Initial Load & Filter Change
     useEffect(() => {
-        let results = songs;
-
-        if (searchTerm) {
-            const lower = searchTerm.toLowerCase();
-            results = results.filter(s =>
-                s.songName.toLowerCase().includes(lower) ||
-                (s.songArtist && s.songArtist.toLowerCase().includes(lower))
-            );
+        if (!loading && user) {
+            setLastVisible(null); // Reset pagination
+            fetchSongs(false);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, loading, searchTerm, filterKey, filterCategory, filterLanguage]);
 
-        if (filterKey) {
-            results = results.filter(s => s.songKey === filterKey);
-        }
+    // Handle Load More
+    const handleLoadMore = () => {
+        fetchSongs(true);
+    };
 
-        if (filterLanguage) {
-            results = results.filter(s => s.songLanguage === filterLanguage);
-        }
+    // Removed client-side filtering effect since we do it server-side now
+    // Only sort by relevance if needed? 
+    // Effect handles fetching.
 
-        if (filterCategory) {
-            results = results.filter(s => {
-                // songCategory is an array
-                if (Array.isArray(s.songCategory)) {
-                    return s.songCategory.includes(filterCategory);
-                }
-                return s.songCategory === filterCategory;
-            });
-        }
-
-        // Sort by relevance if searching
-        if (searchTerm) {
-            const lower = searchTerm.toLowerCase();
-            results = [...results].sort((a, b) => {
-                const aName = a.songName.toLowerCase();
-                const bName = b.songName.toLowerCase();
-
-                const aStarts = aName.startsWith(lower);
-                const bStarts = bName.startsWith(lower);
-
-                if (aStarts && !bStarts) return -1;
-                if (!aStarts && bStarts) return 1;
-
-                // Both start or both don't start, use createdAt as tie-breaker
-                const aTime = a.createdAt?.seconds || 0;
-                const bTime = b.createdAt?.seconds || 0;
-                return bTime - aTime;
-            });
-        }
-
-        setFilteredSongs(results);
-    }, [searchTerm, filterKey, filterCategory, filterLanguage, songs]);
 
     const showHomeView = !searchTerm && !filterKey && !filterCategory && !filterLanguage;
     const recentViewedSongs = recentViewedIds
@@ -202,10 +215,37 @@ export default function Dashboard() {
         .filter(Boolean);
     const newArrivals = songs.slice(0, 5);
 
+    // URL State Management
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+
+    useEffect(() => {
+        const songId = searchParams.get("songId");
+        if (songId) {
+            // Find song in current list or fetch if not found (though finding in list is usually enough for this flow)
+            // Note: If songs are not loaded yet, this might need to wait for songs. 
+            // However, since we sync with `songs` or `filteredSongs`, we can check there.
+            const song = songs.find(s => s.id === songId);
+            if (song) {
+                setSelectedSong(song);
+            }
+        } else {
+            setSelectedSong(null);
+            setIsEditing(false); // Close editing if modal closes
+        }
+    }, [searchParams, songs]);
+
+
     const handleSongClick = (song: any) => {
-        setSelectedSong(song);
+        // Push state to URL
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("songId", song.id);
+
+        // Add current scroll position to restore later? (Browser handles this mostly)
         addToRecentViewed(song.id);
         if (searchTerm) addToRecentSearches(searchTerm);
+
+        router.push(`${pathname}?${params.toString()}`);
     };
 
     if (loading || !user) return null;
@@ -318,11 +358,32 @@ export default function Dashboard() {
                 )}
             </div>
 
+            {/* Load More */}
+            {!showHomeView && (filteredSongs.length > 0) && (
+                <div className={styles.loadMoreContainer}>
+                    {hasMore ? (
+                        <button
+                            onClick={handleLoadMore}
+                            className={styles.loadMoreBtn}
+                            disabled={fetching}
+                        >
+                            {fetching ? "로딩 중..." : (
+                                <>
+                                    <FaChevronDown /> 더 보기
+                                </>
+                            )}
+                        </button>
+                    ) : (
+                        <div className="text-white/30 text-sm">모든 악보를 불러왔습니다</div>
+                    )}
+                </div>
+            )}
+
             <AnimatePresence>
                 {selectedSong && (
                     <SongViewer
                         modalSong={selectedSong}
-                        onClose={() => setSelectedSong(null)}
+                        onClose={() => router.back()}
                         startEditing={startEditing}
                         isEditing={isEditing}
                         editForm={editForm}
@@ -332,7 +393,11 @@ export default function Dashboard() {
                         setIsEditing={setIsEditing}
                         isManager={isManager}
                         songList={filteredSongs}
-                        onNavigate={(song: any) => setSelectedSong(song)}
+                        onNavigate={(song: any) => {
+                            const params = new URLSearchParams(searchParams.toString());
+                            params.set("songId", song.id);
+                            router.replace(`?${params.toString()}`);
+                        }}
                         handleCreateSet={(songId: string) => {
                             const queryParams = new URLSearchParams();
                             queryParams.set("songId", songId);
@@ -366,5 +431,3 @@ function SongCard({ song, onClick, isNew }: { song: any, onClick: () => void, is
         </div>
     );
 }
-
-const styles_sub = styles; // For subcomponent access if needed

@@ -136,10 +136,14 @@ export default function SongViewer({
                         onClick={e => e.stopPropagation()}
                     >
                         {handleCreateSet ? (
-                            <div className="flex-1 flex justify-start">
+                            <div className={styles.createSetBtnContainer}>
+
+                                <div className={styles.songKey}>
+                                    {modalSong.songKey}
+                                </div>
                                 <button
                                     onClick={() => handleCreateSet(modalSong.id)}
-                                    className="px-3 py-1.5 bg-blue-600/80 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                                    className={styles.createSetBtn}
                                 >
                                     <FaPlus size={12} /> 콘티 생성
                                 </button>
@@ -232,7 +236,7 @@ export default function SongViewer({
                         ) : (
                             <div className="text-center" onClick={e => e.stopPropagation()}>
                                 <div className={styles.viewerTitle}>
-                                    {modalSong.songName} {modalSong.songKey}
+                                    {modalSong.songName}
 
                                     {isManager && startEditing && (
                                         <button

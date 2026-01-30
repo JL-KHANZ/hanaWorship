@@ -368,6 +368,42 @@
     opacity: 0.8;
 }
 
+.createSetBtnContainer {
+    flex: 1;
+    display: flex;
+    justify-content: flex-start;
+    padding-top: 0.3rem;
+}
+
+.songKey {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: white;
+    margin-right: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    justify-content: center;
+    align-items: center;
+}
+
+.createSetBtn {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid white;
+    background-color: transparent;
+    color: white;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.createSetBtn:hover {
+    background-color: rgba(29, 78, 216, 1);
+}
+
 /* Smart Library Home Styles */
 .homeView {
     display: flex;
@@ -463,4 +499,30 @@
     border-radius: 4px;
     font-weight: 800;
     margin-left: 0.5rem;
+}
+.loadMoreContainer {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.loadMoreBtn {
+    padding: 0.75rem 2rem;
+    background: var(--surface-2);
+    border: 1px solid var(--surface-border);
+    border-radius: 2rem;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.loadMoreBtn:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    transform: translateY(-2px);
 }
