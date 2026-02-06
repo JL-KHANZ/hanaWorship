@@ -1,11 +1,11 @@
 "use client";
 import { useAuth } from "@/context/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import styles from "./dashboard.module.css";
 
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, getDocs, startAfter, limit, where, DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FaTimes, FaPen, FaSave, FaTrash, FaHistory, FaSearch, FaPlus, FaChevronDown } from "react-icons/fa";
@@ -125,84 +125,94 @@ export default function Dashboard() {
     const [filterCategory, setFilterCategory] = useState("");
     const [filterLanguage, setFilterLanguage] = useState("");
 
-    // Pagination State
-    const [lastVisible, setLastVisible] = useState<any>(null);
-    const [hasMore, setHasMore] = useState(true);
-    const SONGS_PER_PAGE = 20;
+    // Debounce Search Term
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
-    // Fetch Songs Function
-    const fetchSongs = async (isLoadMore = false) => {
-        setFetching(true);
-        try {
-            let q = query(collection(db, "music_sheets"));
-
-            // Apply Filters (Server-Side)
-            const constraints: any[] = [];
-
-            if (searchTerm) {
-                // Simple prefix search for songName
-                // Note: Firestore doesn't support multiple range filters or case-insensitive search easily.
-                // We will rely on client-side sorting/filtering for complex text search if needed, 
-                // OR implementation of a simple prefix match. For now, strict prefix match:
-                constraints.push(where("songName", ">=", searchTerm));
-                constraints.push(where("songName", "<=", searchTerm + "\uf8ff"));
-            } else {
-                constraints.push(orderBy("createdAt", "desc"));
-            }
-
-            if (filterKey) constraints.push(where("songKey", "==", filterKey));
-            if (filterLanguage) constraints.push(where("songLanguage", "==", filterLanguage));
-            if (filterCategory) constraints.push(where("songCategory", "array-contains", filterCategory));
-
-            // Pagination
-            if (isLoadMore && lastVisible) {
-                constraints.push(startAfter(lastVisible));
-            }
-
-            constraints.push(limit(SONGS_PER_PAGE));
-
-            q = query(collection(db, "music_sheets"), ...constraints);
-
-            const snapshot = await getDocs(q);
-            const newSongs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            if (snapshot.docs.length < SONGS_PER_PAGE) {
-                setHasMore(false);
-            } else {
-                setHasMore(true);
-            }
-
-            if (snapshot.docs.length > 0) {
-                setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-            }
-
-            if (isLoadMore) {
-                setSongs(prev => [...prev, ...newSongs]);
-                setFilteredSongs(prev => [...prev, ...newSongs]);
-            } else {
-                setSongs(newSongs);
-                setFilteredSongs(newSongs); // In this new model, filteredSongs is just the displayed songs
-            }
-        } catch (error) {
-            console.error("Error fetching songs:", error);
-        } finally {
-            setFetching(false);
-        }
-    };
-
-    // Initial Load & Filter Change
     useEffect(() => {
-        if (!loading && user) {
-            setLastVisible(null); // Reset pagination
-            fetchSongs(false);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, loading, searchTerm, filterKey, filterCategory, filterLanguage]);
+        const timer = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 150); // 150ms delay
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
 
-    // Handle Load More
-    const handleLoadMore = () => {
-        fetchSongs(true);
-    };
+    // Initial Fetch (Real-time, All Songs)
+    useEffect(() => {
+        if (!loading) {
+            if (!user) {
+                router.push("/login");
+                return;
+            }
+
+            setFetching(true);
+            const q = query(collection(db, "music_sheets"), orderBy("createdAt", "desc"));
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setSongs(data);
+                setFetching(false);
+            });
+            return () => unsubscribe();
+        }
+    }, [user, loading, router]);
+
+
+    // Client-Side Filtering & Sorting
+    useEffect(() => {
+        let results = songs;
+
+        // 1. Apply Filters
+        if (filterKey) {
+            results = results.filter(s => s.songKey === filterKey);
+        }
+
+        if (filterLanguage) {
+            results = results.filter(s => s.songLanguage === filterLanguage);
+        }
+
+        if (filterCategory) {
+            results = results.filter(s => {
+                if (Array.isArray(s.songCategory)) {
+                    return s.songCategory.includes(filterCategory);
+                }
+                return s.songCategory === filterCategory;
+            });
+        }
+
+        // 2. Search (Infix/Substring)
+        if (debouncedSearchTerm) {
+            const lower = debouncedSearchTerm.toLowerCase();
+            results = results
+                .filter(s =>
+                    s.songName.toLowerCase().includes(lower) ||
+                    (s.songArtist && s.songArtist.toLowerCase().includes(lower))
+                )
+                .sort((a, b) => {
+                    const getScore = (item: any) => {
+                        const name = item.songName.toLowerCase();
+                        const artist = (item.songArtist || "").toLowerCase();
+
+                        if (name.startsWith(lower)) return 1;
+                        if (name.includes(lower)) return 2;
+                        if (artist.startsWith(lower)) return 3;
+                        if (artist.includes(lower)) return 4;
+                        return 5;
+                    };
+
+                    const scoreA = getScore(a);
+                    const scoreB = getScore(b);
+
+                    // 1. Sort by score first (relevance)
+                    if (scoreA !== scoreB) {
+                        return scoreA - scoreB;
+                    }
+
+                    // 2. If scores are tied, sort alphabetically
+                    return a.songName.toLowerCase().localeCompare(b.songName.toLowerCase());
+                });
+        }
+
+        setFilteredSongs(results);
+    }, [songs, debouncedSearchTerm, filterKey, filterCategory, filterLanguage]);
 
     // Removed client-side filtering effect since we do it server-side now
     // Only sort by relevance if needed? 
@@ -259,6 +269,7 @@ export default function Dashboard() {
             <div className={styles.filterBar}>
                 <div className={styles.searchInputContainer}>
                     <input
+                        ref={searchInputRef}
                         type="text"
                         placeholder="곡 제목 또는 아티스트 검색..."
                         className={styles.searchInput}
@@ -270,7 +281,10 @@ export default function Dashboard() {
                     />
                     {searchTerm && (
                         <button
-                            onClick={() => setSearchTerm("")}
+                            onClick={() => {
+                                setSearchTerm("");
+                                searchInputRef.current?.focus();
+                            }}
                             className={styles.clearButton}
                         >
                             <FaTimes />
@@ -358,26 +372,7 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* Load More */}
-            {!showHomeView && (filteredSongs.length > 0) && (
-                <div className={styles.loadMoreContainer}>
-                    {hasMore ? (
-                        <button
-                            onClick={handleLoadMore}
-                            className={styles.loadMoreBtn}
-                            disabled={fetching}
-                        >
-                            {fetching ? "로딩 중..." : (
-                                <>
-                                    <FaChevronDown /> 더 보기
-                                </>
-                            )}
-                        </button>
-                    ) : (
-                        <div className="text-white/30 text-sm">모든 악보를 불러왔습니다</div>
-                    )}
-                </div>
-            )}
+
 
             <AnimatePresence>
                 {selectedSong && (
