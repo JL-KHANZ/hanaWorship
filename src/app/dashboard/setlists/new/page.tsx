@@ -7,9 +7,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import styles from "../setlists.module.css";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
-import { FaPlus, FaArrowUp, FaArrowDown, FaTrash, FaSearch, FaCalendarAlt, FaCheck, FaTimes, FaFilter } from "react-icons/fa";
+import { IKContext, IKUpload } from "imagekitio-react";
+import { FaPlus, FaArrowUp, FaArrowDown, FaTrash, FaSearch, FaCalendarAlt, FaCheck, FaTimes, FaFilter, FaImage } from "react-icons/fa";
 import SongViewer from "../../components/SongViewer";
 import { AnimatePresence } from "framer-motion";
+
+const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
+const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
 
 function NewSetlistContent() {
     const { user } = useAuth();
@@ -43,10 +47,109 @@ function NewSetlistContent() {
     const [showCalendar, setShowCalendar] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false);
+
+    // Temp-song naming modal
+    const [pendingUploadRes, setPendingUploadRes] = useState<any>(null);
+    const [tempSongName, setTempSongName] = useState("");
+    const [savingTemp, setSavingTemp] = useState(false);
 
     // Viewing state for preview
     const [viewingSong, setViewingSong] = useState<any>(null);
     const [showFilters, setShowFilters] = useState(false);
+
+    const authenticator = async () => {
+        try {
+            const response = await fetch("/api/imagekit/auth");
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Request failed with status ${response.status}: ${errorText}`);
+            }
+            const data = await response.json();
+            const { signature, expire, token } = data;
+            return { signature, expire, token };
+        } catch (error: any) {
+            throw new Error(`Authentication request failed: ${error.message}`);
+        }
+    };
+
+    const handleUploadError = (err: any) => {
+        setUploading(false);
+        console.error("Upload Error", err);
+        alert("이미지 업로드 실패");
+    };
+
+    const handleUploadSuccess = (res: any) => {
+        setUploading(false);
+        // Don't write to Firestore yet — show the naming modal first
+        setPendingUploadRes(res);
+        setTempSongName("");
+    };
+
+    const confirmTempSong = async () => {
+        if (!pendingUploadRes) return;
+        setSavingTemp(true);
+        try {
+            const name = tempSongName.trim() || "새 악보 (업로드됨)";
+            const tempSongData = {
+                songName: name,
+                songArtist: "Unknown",
+                songKey: "C",
+                imageUrl: pendingUploadRes.url,
+                thumbnailUrl: pendingUploadRes.thumbnailUrl || pendingUploadRes.url,
+                filePath: pendingUploadRes.filePath,
+                imageIds: [pendingUploadRes.fileId],
+                uploadedBy: user?.uid,
+                createdAt: serverTimestamp(),
+                isTemporary: true,
+                status: 'pending'
+            };
+
+            const docRef = await addDoc(collection(db, "temporary_music_sheets"), tempSongData);
+
+            // Build a plain serializable snapshot — do NOT spread tempSongData because
+            // it contains the serverTimestamp() sentinel which Firestore rejects when
+            // nested inside the songs[] array written by handleSave.
+            const newSong = {
+                id: docRef.id,
+                songName: tempSongData.songName,
+                songArtist: tempSongData.songArtist,
+                songKey: tempSongData.songKey,
+                imageUrl: tempSongData.imageUrl,
+                thumbnailUrl: tempSongData.thumbnailUrl,
+                filePath: tempSongData.filePath,
+                imageIds: tempSongData.imageIds,
+                uploadedBy: tempSongData.uploadedBy,
+                isTemporary: true,
+                status: 'pending',
+                createdAt: { seconds: Date.now() / 1000 },
+            };
+
+            setSelectedSongs(prev => [...prev, newSong]);
+            setPendingUploadRes(null);
+        } catch (error) {
+            console.error("Error creating temp sheet", error);
+            alert("데이터 저장 실패");
+        } finally {
+            setSavingTemp(false);
+        }
+    };
+
+    const cancelTempSong = async () => {
+        // Clean up the already-uploaded ImageKit file
+        if (pendingUploadRes?.fileId) {
+            try {
+                await fetch("/api/imagekit/delete", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ fileIds: [pendingUploadRes.fileId] }),
+                });
+            } catch (e) {
+                console.error("ImageKit cleanup failed", e);
+            }
+        }
+        setPendingUploadRes(null);
+    };
 
     useEffect(() => {
         // Fetch songs once
@@ -433,6 +536,38 @@ function NewSetlistContent() {
                                 ))}
                             </div>
                         )}
+
+                        {/* Upload Button */}
+                        {/* <div className="mt-4 pt-4 border-t border-white/10">
+                            {publicKey && urlEndpoint ? (
+                                <IKContext
+                                    publicKey={publicKey}
+                                    urlEndpoint={urlEndpoint}
+                                    authenticator={authenticator}
+                                >
+                                    <IKUpload
+                                        fileName="temp-sheet"
+                                        onError={handleUploadError}
+                                        onSuccess={handleUploadSuccess}
+                                        onUploadStart={() => setUploading(true)}
+                                        validateFile={(file: any) => file.size < 10000000}
+                                        className={styles.uploadFileInput}
+                                        id="temp-upload"
+                                    />
+                                    <label
+                                        htmlFor="temp-upload"
+                                        className={`flex items-center justify-center gap-2 w-full py-3 rounded-lg border border-dashed border-white/20 hover:bg-white/5 cursor-pointer transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                        <FaImage className="text-gray-400" />
+                                        <span className="text-sm text-gray-300">
+                                            {uploading ? "업로드 중..." : "이미지 직접 업로드"}
+                                        </span>
+                                    </label>
+                                </IKContext>
+                            ) : (
+                                <div className="text-red-400 text-xs text-center">ImageKit 설정 필요</div>
+                            )}
+                        </div> */}
                     </div>
                 </div>
             </div>
@@ -449,6 +584,39 @@ function NewSetlistContent() {
                     />
                 )}
             </AnimatePresence>
+
+            {/* Temp-song naming modal */}
+            {pendingUploadRes && (
+                <div className={styles.tempNameOverlay} onClick={cancelTempSong}>
+                    <div className={styles.tempNameCard} onClick={e => e.stopPropagation()}>
+                        <p className={styles.tempNameTitle}>악보 이름 입력</p>
+                        <p className={styles.tempNameSubtitle}>매니저 승인 후 정식 등록됩니다</p>
+                        <img
+                            src={pendingUploadRes.thumbnailUrl || pendingUploadRes.url}
+                            alt="uploaded sheet preview"
+                            className={styles.tempNameThumb}
+                        />
+                        <input
+                            autoFocus
+                            className={styles.tempNameInput}
+                            placeholder="예: 은혜 아니면 (임시)"
+                            value={tempSongName}
+                            onChange={e => setTempSongName(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') confirmTempSong(); }}
+                        />
+                        <div className={styles.tempNameActions}>
+                            <button className={styles.tempNameCancel} onClick={cancelTempSong}>취소</button>
+                            <button
+                                className={styles.tempNameConfirm}
+                                onClick={confirmTempSong}
+                                disabled={savingTemp}
+                            >
+                                {savingTemp ? "저장 중..." : "콘티에 추가"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

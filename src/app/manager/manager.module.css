@@ -243,3 +243,322 @@
     border-color: #ef4444;
     color: #ef4444;
 }
+
+/* ── Header row ── */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+/* ── Tab bar ── */
+.tabBar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 0.25rem;
+}
+
+.tabBtn {
+    padding-bottom: 0.5rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s;
+    color: rgba(156, 163, 175, 1); /* gray-400 */
+    font-size: 1rem;
+    font-family: inherit;
+}
+
+.tabBtn:hover {
+    color: white;
+}
+
+.tabBtnActive {
+    color: white;
+    border-bottom: 2px solid white;
+    font-weight: 700;
+}
+
+.tabBadge {
+    margin-left: 0.5rem;
+    background: #ef4444;
+    color: white;
+    font-size: 0.75rem;
+    padding: 0 0.375rem;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+}
+
+/* ── Loading / auth guard ── */
+.loadingGuard {
+    padding: 2rem;
+    text-align: center;
+    color: white;
+}
+
+/* ── Review grid ── */
+.reviewGrid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .reviewGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .reviewGrid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.reviewEmpty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 2.5rem 0;
+    color: rgba(107, 114, 128, 1); /* gray-500 */
+}
+
+.reviewCard {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: background 0.2s;
+}
+
+.reviewCard:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.reviewThumb {
+    aspect-ratio: 3 / 4;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 0.5rem;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+    position: relative;
+}
+
+.reviewThumbImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.reviewBadge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: #eab308; /* yellow-500 */
+    color: black;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.reviewDate {
+    font-size: 0.875rem;
+    color: rgba(156, 163, 175, 1); /* gray-400 */
+    margin-bottom: 0.25rem;
+}
+
+.reviewName {
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 1rem;
+}
+
+.reviewBtn {
+    width: 100%;
+    background: var(--primary);
+    color: white;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    transition: filter 0.2s;
+}
+
+.reviewBtn:hover {
+    filter: brightness(1.1);
+}
+
+/* ── Promotion banner ── */
+.promotionBanner {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd; /* blue-300 */
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.promotionDismiss {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+    padding: 0;
+}
+
+.promotionDismiss:hover {
+    color: white;
+}
+
+/* ── Field header row (label + status) ── */
+.fieldHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 0.25rem;
+}
+
+/* ── Upload image row header ── */
+.uploadHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+/* ── Upload area inner layout ── */
+.uploadInner {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+}
+
+.imageGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+.imageCard {
+    position: relative;
+    aspect-ratio: 3 / 4;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.imageCard:hover .imageRemoveBtn {
+    opacity: 1;
+}
+
+.imageCardImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.imagePageLabel {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    color: white;
+    backdrop-filter: blur(4px);
+}
+
+.imageRemoveBtn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: rgba(239, 68, 68, 0.8);
+    padding: 0.375rem;
+    border-radius: 9999px;
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.imageRemoveBtn:hover {
+    background: #dc2626; /* red-600 */
+}
+
+.uploadDropRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.uploadDropZone {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.2s;
+}
+
+.uploadDropZone:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.uploadFileInput {
+    display: none;
+}
+
+.uploadLabel {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.uploadIcon {
+    font-size: 1.5rem;
+}
+
+.uploadHint {
+    font-size: 0.875rem;
+    color: rgba(156, 163, 175, 1); /* gray-400 */
+}
+
+.imagekitError {
+    color: #f87171; /* red-400 */
+}
