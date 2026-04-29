@@ -249,6 +249,8 @@ export default function ManagerPage() {
                                     return {
                                         ...s,
                                         ...finalSongData,
+                                        createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
+                                        updatedAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
                                         id: finalDocId,
                                         isTemporary: false
                                     };

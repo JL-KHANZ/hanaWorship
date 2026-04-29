@@ -82,6 +82,7 @@ export default function LoginPage() {
             return;
         }
         window.location.href = kakaoAuthUrl;
+        console.log("test")
     };
 
     return (

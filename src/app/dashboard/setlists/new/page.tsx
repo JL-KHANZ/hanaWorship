@@ -94,13 +94,17 @@ function NewSetlistContent() {
             const tempSongData = {
                 songName: name,
                 songArtist: "Unknown",
-                songKey: "C",
+                songKey: "-",
+                songCategory: "-",
+                songArrangedBy: "-",
+                songBpm: "-",
+                songLanguage: "-",
                 imageUrl: pendingUploadRes.url,
                 thumbnailUrl: pendingUploadRes.thumbnailUrl || pendingUploadRes.url,
                 filePath: pendingUploadRes.filePath,
                 imageIds: [pendingUploadRes.fileId],
                 uploadedBy: user?.uid,
-                createdAt: serverTimestamp(),
+                createdAt: new Date(),
                 isTemporary: true,
                 status: 'pending'
             };
@@ -115,6 +119,10 @@ function NewSetlistContent() {
                 songName: tempSongData.songName,
                 songArtist: tempSongData.songArtist,
                 songKey: tempSongData.songKey,
+                songCategory: tempSongData.songCategory,
+                songArrangedBy: tempSongData.songArrangedBy,
+                songBpm: tempSongData.songBpm,
+                songLanguage: tempSongData.songLanguage,
                 imageUrl: tempSongData.imageUrl,
                 thumbnailUrl: tempSongData.thumbnailUrl,
                 filePath: tempSongData.filePath,
@@ -122,7 +130,7 @@ function NewSetlistContent() {
                 uploadedBy: tempSongData.uploadedBy,
                 isTemporary: true,
                 status: 'pending',
-                createdAt: { seconds: Date.now() / 1000 },
+                createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
             };
 
             setSelectedSongs(prev => [...prev, newSong]);
@@ -291,7 +299,7 @@ function NewSetlistContent() {
                     name: formData.name,
                     setTargetDate: formData.targetDate,
                     setOwner: user?.uid,
-                    setCreatedDate: serverTimestamp(),
+                    setCreatedDate: new Date(),
                     songs: selectedSongs, // storing full song objects for simplicity and snapshot preservation
                 });
             }
@@ -538,7 +546,7 @@ function NewSetlistContent() {
                         )}
 
                         {/* Upload Button */}
-                        {/* <div className="mt-4 pt-4 border-t border-white/10">
+                        <div className="mt-4 pt-4 border-t border-white/10">
                             {publicKey && urlEndpoint ? (
                                 <IKContext
                                     publicKey={publicKey}
@@ -567,7 +575,7 @@ function NewSetlistContent() {
                             ) : (
                                 <div className="text-red-400 text-xs text-center">ImageKit 설정 필요</div>
                             )}
-                        </div> */}
+                        </div>
                     </div>
                 </div>
             </div>

@@ -24,13 +24,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [userData, setUserData] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isManager, setIsManager] = useState(false);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setUser(user);
             if (user) {
-                // Fetch user data from Firestore
+                // Fetch token and custom claims
                 try {
+                    const tokenResult = await user.getIdTokenResult(true);
+                    setIsManager(tokenResult.claims.role === "manager");
+
+                    // Fetch user data from Firestore
                     const userDoc = await getDoc(doc(db, "users", user.uid));
                     if (userDoc.exists()) {
                         setUserData(userDoc.data());
@@ -38,11 +43,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         setUserData(null);
                     }
                 } catch (error) {
-                    console.error("Error fetching user data:", error);
+                    console.error("Error fetching user data or claims:", error);
                     setUserData(null);
+                    setIsManager(false);
                 }
             } else {
                 setUserData(null);
+                setIsManager(false);
             }
             setLoading(false);
         });
@@ -50,7 +57,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return () => unsubscribe();
     }, []);
 
-    const isManager = userData?.role === "manager";
 
     return (
         <AuthContext.Provider value={{ user, userData, loading, isManager }}>

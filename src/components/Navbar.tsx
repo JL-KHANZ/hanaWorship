@@ -42,8 +42,8 @@ export default function Navbar() {
 
 
                     <div className={styles.actions}>
-                        {user?.email && (
-                            <span className={styles.userEmail}>{user.email}</span>
+                        {(user?.displayName || user?.email) && (
+                            <span className={styles.userEmail}>{user.displayName || user.email}</span>
                         )}
                     </div>
 
