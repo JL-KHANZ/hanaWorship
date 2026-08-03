@@ -33,7 +33,9 @@ export default function SetlistsPage() {
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <h1 className={styles.title}>내 콘티</h1>
+                <h1 className={styles.title}>
+                    {user?.displayName || user?.email ? `${user.displayName || user.email}의 콘티` : "내 콘티"}
+                </h1>
                 <Link href="/dashboard/setlists/new" className={styles.createBtn}>+ 새 콘티 만들기</Link>
             </div>
 

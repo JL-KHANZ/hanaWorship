@@ -6,7 +6,7 @@ import styles from "./manager.module.css";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, deleteDoc, orderBy } from "firebase/firestore";
-import { FaQuestionCircle, FaTimes, FaList, FaPen } from "react-icons/fa";
+import { FaQuestionCircle, FaTimes, FaList, FaPen, FaTrash } from "react-icons/fa";
 
 const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
 const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
@@ -80,6 +80,33 @@ export default function ManagerPage() {
 
         setActiveTab('register');
         setSuccess("임시 악보를 불러왔습니다. 정보를 입력하고 저장하면 정식 등록됩니다.");
+    };
+
+    const handleDeleteTemp = async (item: any) => {
+        if (!confirm(`'${item.songName || "이 악보"}'를 삭제하시겠습니까?\n이미지 및 등록 대기 목록에서 완전히 삭제됩니다.`)) {
+            return;
+        }
+
+        try {
+            const fileIds = Array.isArray(item.imageIds) && item.imageIds.length > 0
+                ? item.imageIds
+                : (item.fileId ? [item.fileId] : []);
+
+            if (fileIds.length > 0) {
+                await fetch("/api/imagekit/delete", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ fileIds })
+                });
+            }
+
+            await deleteDoc(doc(db, "temporary_music_sheets", item.id));
+            setPendingUploads(prev => prev.filter(p => p.id !== item.id));
+            setSuccess("임시 악보가 삭제되었습니다.");
+        } catch (e) {
+            console.error("Failed to delete temporary music sheet", e);
+            alert("삭제 중 오류가 발생했습니다.");
+        }
     };
 
     // Cleanup helper
@@ -370,12 +397,21 @@ export default function ManagerPage() {
                                 </div>
                                 <div className={styles.reviewDate}>{new Date(item.createdAt?.seconds * 1000).toLocaleDateString()}</div>
                                 <div className={styles.reviewName}>{item.songName}</div>
-                                <button
-                                    onClick={() => handleSelectTemp(item)}
-                                    className={styles.reviewBtn}
-                                >
-                                    <FaPen size={12} /> 검토 및 등록
-                                </button>
+                                <div className={styles.reviewActions}>
+                                    <button
+                                        onClick={() => handleSelectTemp(item)}
+                                        className={styles.reviewBtn}
+                                    >
+                                        <FaPen size={12} /> 검토 및 등록
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteTemp(item)}
+                                        className={styles.reviewDeleteBtn}
+                                        title="삭제"
+                                    >
+                                        <FaTrash size={12} /> 삭제
+                                    </button>
+                                </div>
                             </div>
                         ))
                     )}
