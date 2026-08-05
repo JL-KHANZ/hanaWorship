@@ -11,6 +11,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { FaTimes, FaPen, FaSave, FaTrash, FaHistory, FaSearch, FaPlus, FaChevronDown } from "react-icons/fa";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import SongViewer from "./components/SongViewer";
+import SearchBar from "./components/searchcomponents/searchBar";
 
 export default function Dashboard() {
     const { user, loading, isManager } = useAuth();
@@ -127,7 +128,6 @@ export default function Dashboard() {
 
     // Debounce Search Term
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
-    const searchInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -267,43 +267,16 @@ export default function Dashboard() {
             {/* Filter Bar */}
             {/* Filter Bar */}
             <div className={styles.filterBar}>
-                <div className={styles.searchInputContainer}>
-                    <input
-                        ref={searchInputRef}
-                        type="text"
-                        placeholder="곡 제목 또는 아티스트 검색..."
-                        className={styles.searchInput}
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        onKeyDown={e => {
-                            if (e.key === 'Enter') addToRecentSearches(searchTerm);
-                        }}
-                    />
-                    {searchTerm && (
-                        <button
-                            onClick={() => {
-                                setSearchTerm("");
-                                searchInputRef.current?.focus();
-                            }}
-                            className={styles.clearButton}
-                        >
-                            <FaTimes />
-                        </button>
-                    )}
-                </div>
+                <SearchBar
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    songs={songs}
+                    recentSearches={recentSearches}
+                    onAddRecentSearch={addToRecentSearches}
+                    onClearRecentSearch={clearRecentSearch}
+                />
 
                 <div className={styles.filterBarSelectContainer}>
-                    <select
-                        className={styles.filterSelect}
-                        value={filterCategory}
-                        onChange={e => setFilterCategory(e.target.value)}
-                    >
-                        <option value="">모든 카테고리</option>
-                        <option value="상향">상향</option>
-                        <option value="외향">외향</option>
-                        <option value="내향">내향</option>
-                        <option value="JOY">JOY</option>
-                    </select>
                     <select
                         className={styles.filterSelect}
                         value={filterKey}
@@ -325,6 +298,15 @@ export default function Dashboard() {
                         <option value="아랍어">아랍어</option>
                         <option value="터키어">터키어</option>
                     </select>
+                    <label className={`${styles.joyCheckboxContainer} ${filterCategory === 'JOY' ? styles.joyCheckboxContainerActive : ''}`}>
+                        <input
+                            type="checkbox"
+                            className={styles.joyCheckboxInput}
+                            checked={filterCategory === 'JOY'}
+                            onChange={e => setFilterCategory(e.target.checked ? 'JOY' : '')}
+                        />
+                        <span>JOY</span>
+                    </label>
                 </div>
             </div>
 
