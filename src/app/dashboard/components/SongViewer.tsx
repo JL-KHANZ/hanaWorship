@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import styles from "../dashboard.module.css";
 import { AnimatePresence, motion } from "framer-motion";
 import { FaTimes, FaPen, FaSave, FaTrash, FaPlus } from "react-icons/fa";
+import SongLinker from "./SongLinker";
 
 interface SongViewerProps {
     modalSong: any;
@@ -151,6 +152,12 @@ export default function SongViewer({
                         ) : (
                             <div className="flex-1"></div>
                         )}
+
+                        <SongLinker
+                            songName={modalSong.songName}
+                            songArtist={modalSong.songArtist}
+                            songArrangedBy={modalSong.songArrangedBy}
+                        />
                         <button onClick={handleClose} className={styles.viewerCloseBtn}>
                             <FaTimes />
                         </button>
@@ -236,7 +243,7 @@ export default function SongViewer({
                         ) : (
                             <div className="text-center" onClick={e => e.stopPropagation()}>
                                 <div className={styles.viewerTitle}>
-                                    {modalSong.songName}
+                                    <span>{modalSong.songName}</span>
 
                                     {isManager && startEditing && (
                                         <button

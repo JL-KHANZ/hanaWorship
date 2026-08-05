@@ -40,7 +40,7 @@ export default function Dashboard() {
     }, []);
 
     const addToRecentViewed = (id: string) => {
-        const updated = [id, ...recentViewedIds.filter(i => i !== id)].slice(0, 10);
+        const updated = [id, ...recentViewedIds.filter(i => i !== id)].slice(0, 15);
         setRecentViewedIds(updated);
         localStorage.setItem("recentViewedIds", JSON.stringify(updated));
     };
@@ -332,31 +332,31 @@ export default function Dashboard() {
                 {showHomeView ? (
                     <div className={styles.homeView}>
 
-                        {/* 1. Recently Viewed */}
+                        {/* 1. New Arrivals */}
+                        <section className={styles.section}>
+                            <h2 className={styles.sectionTitle}>
+                                <span>✨</span> 새로 올라온 악보
+                            </h2>
+                            <div className={styles.horizontalScroll}>
+                                {newArrivals.map(song => (
+                                    <SongCard key={song.id} song={song} onClick={() => handleSongClick(song)} isNew />
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* 2. Recently Viewed */}
                         {recentViewedSongs.length > 0 && (
                             <section className={styles.section}>
                                 <h2 className={styles.sectionTitle}>
                                     <span>🕒</span> 최근 본 악보
                                 </h2>
-                                <div className={styles.horizontalScroll}>
+                                <div className={styles.grid}>
                                     {recentViewedSongs.map(song => (
                                         <SongCard key={song.id} song={song} onClick={() => handleSongClick(song)} />
                                     ))}
                                 </div>
                             </section>
                         )}
-
-                        {/* 2. New Arrivals */}
-                        <section className={styles.section}>
-                            <h2 className={styles.sectionTitle}>
-                                <span>✨</span> 새로 올라온 악보
-                            </h2>
-                            <div className={styles.grid}>
-                                {newArrivals.map(song => (
-                                    <SongCard key={song.id} song={song} onClick={() => handleSongClick(song)} isNew />
-                                ))}
-                            </div>
-                        </section>
                     </div>
                 ) : (
                     <>
