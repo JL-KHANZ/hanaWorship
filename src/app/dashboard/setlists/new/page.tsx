@@ -46,6 +46,7 @@ function NewSetlistContent() {
     const [saving, setSaving] = useState(false);
     const [showCalendar, setShowCalendar] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [goToInputSongForm, setGoToInputSongForm] = useState(false);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
 
@@ -311,6 +312,303 @@ function NewSetlistContent() {
         }
     };
 
+    // rendering columns
+
+    const SearchSongsColumn = () => {
+        return (
+            <div>
+                <div className={styles.inputForm}>
+                    <div className={styles.formGroup}>
+                        <input
+                            className={`${styles.search} ${styles.mb0}`}
+                            value={formData.name}
+                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            placeholder={`이름(${formData.targetDate})`}
+                            autoFocus
+                        />
+                    </div>
+                    <div className={styles.formGroup2}>
+                        <div className="relative">
+                            <div className={styles.formCalendarGroup}>
+                                <input
+                                    type="text"
+                                    readOnly
+                                    className={styles.dateInput}
+                                    value={formData.targetDate.replaceAll('-', '/')}
+                                    onClick={() => setShowCalendar(!showCalendar)}
+                                    placeholder="YYYY/MM/DD"
+                                />
+                                <button
+                                    onClick={() => setShowCalendar(!showCalendar)}
+                                    className={styles.calendarButton}
+                                >
+                                    <FaCalendarAlt />
+                                </button>
+                            </div>
+                            {showCalendar && (
+                                <div className={styles.calendarContainer}>
+                                    <div
+                                        className="fixed inset-0 z-[-1]"
+                                        onClick={() => setShowCalendar(false)}
+                                    ></div>
+                                    <Calendar
+                                        onChange={(value: any) => {
+                                            const date = value as Date;
+                                            const year = date.getFullYear();
+                                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                                            const day = String(date.getDate()).padStart(2, '0');
+                                            setFormData({ ...formData, targetDate: `${year}-${month}-${day}` });
+                                            setShowCalendar(false);
+                                        }}
+                                        value={new Date(formData.targetDate)}
+                                        formatDay={(locale, date) => date.getDate().toString()}
+                                        className="!bg-transparent !border-0 text-white"
+                                        tileClassName="!text-white hover:!bg-[var(--primary)] hover:!text-white rounded-lg"
+                                        prevLabel="<"
+                                        nextLabel=">"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+                <div className={styles.divider}></div>
+                <div className={styles.songSearch}>
+                    <div className={styles.searchInputContainer}>
+                        <input
+                            className={styles.songSearchInput}
+                            placeholder="라이브러리 검색..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                        />
+                        {search && (
+                            <button
+                                onClick={() => setSearch("")}
+                                className={styles.clearBtn}
+                            >
+                                <FaTimes />
+                            </button>
+                        )}
+                    </div>
+
+                    <div className={styles.filterPopupContainer}>
+                        <button
+                            className={`${styles.filterBtn} ${showFilters || filterKey || filterLanguage || filterCategory ? styles.filterBtnActive : ''}`}
+                            onClick={() => setShowFilters(!showFilters)}
+                            title="필터 옵션"
+                        >
+                            <FaFilter size={14} />
+                        </button>
+
+                        {showFilters && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setShowFilters(false)}></div>
+                                <div className={styles.filterPopup}>
+                                    <div>
+                                        <div className={styles.filterPopupLabel}>Key</div>
+                                        <select
+                                            className={`${styles.filterSelect} ${styles.fullWidth}`}
+                                            value={filterKey}
+                                            onChange={e => setFilterKey(e.target.value)}
+                                        >
+                                            <option value="">모든 키</option>
+                                            {["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"].map(k => (
+                                                <option key={k} value={k}>{k}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <div className={styles.filterPopupLabel}>언어</div>
+                                        <select
+                                            className={`${styles.filterSelect} ${styles.fullWidth}`}
+                                            value={filterLanguage}
+                                            onChange={e => setFilterLanguage(e.target.value)}
+                                        >
+                                            <option value="">모든 언어</option>
+                                            <option value="한국어">한국어</option>
+                                            <option value="영어">영어</option>
+                                            <option value="아랍어">아랍어</option>
+                                            <option value="터키어">터키어</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <div className={styles.filterPopupLabel}>카테고리</div>
+                                        <select
+                                            className={`${styles.filterSelect} ${styles.fullWidth}`}
+                                            value={filterCategory}
+                                            onChange={e => setFilterCategory(e.target.value)}
+                                        >
+                                            <option value="">모든 카테고리</option>
+                                            <option value="상향">상향</option>
+                                            <option value="외향">외향</option>
+                                            <option value="내향">내향</option>
+                                            <option value="JOY">JOY</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* Left Col: Find and Select */}
+                <div className={styles.panelLeft}>
+
+
+                    {filteredSongs.length === 0 ? (
+                        <div className={styles.empty}>
+                            결과 없음
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-1">
+                            {filteredSongs.map(song => {
+                                const isAdded = selectedSongs.some(s => s.id === song.id);
+                                return (
+                                    <div
+                                        key={song.id}
+                                        className={`${styles.songItem}`}
+                                        onClick={() => setViewingSong(song)}
+                                    >
+                                        <div className={isAdded ? 'opacity-50' : ''}>
+                                            <div className={styles.songItemName}>{song.songName}</div>
+                                            <div className={styles.songItemArtist}>{song.songKey} • {song.songArtist}</div>
+                                        </div>
+                                        {isAdded ? (
+                                            <div className="p-2">
+                                                <FaCheck className="text-green-500" />
+                                            </div>
+                                        ) : (
+                                            <button
+                                                className={styles.addBtn}
+                                                onClick={(e) => addSong(song, e)}
+                                            >
+                                                <FaPlus className={styles.songItemAdd} />
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
+        )
+    }
+
+    const SelectedSongsColumn = () => {
+        return (
+            <div className={styles.panelRight}>
+                <h3 className={styles.panelTitle}>
+                    <span className={styles.songCountText}>{selectedSongs.length}곡 </span>
+                </h3>
+
+                {selectedSongs.length === 0 ? (
+                    <div className={styles.empty}>
+                        라이브러리에서 곡을 선택하세요
+                    </div>
+                ) : (
+                    <div>
+                        {selectedSongs.map((song, idx) => (
+                            <div key={`${song.id}-${idx}`} className={styles.selectedSong}>
+                                <div>
+                                    <div className={styles.selectedSongInfo}>
+                                        <div className={styles.selectedSongNumber}>{idx + 1}</div>
+                                        <div className={styles.selectedSongKey}>{song.songKey}</div>
+                                    </div>
+                                    <div>
+                                        <div className="font-semibold">{song.songName}</div>
+                                    </div>
+                                </div>
+
+                                <div className={styles.orderControls}>
+                                    <button className={styles.controlBtn} onClick={() => moveSong(idx, 'up')} disabled={idx === 0}>
+                                        <FaArrowUp />
+                                    </button>
+                                    <button className={styles.controlBtn} onClick={() => moveSong(idx, 'down')} disabled={idx === selectedSongs.length - 1}>
+                                        <FaArrowDown />
+                                    </button>
+                                    <button className={styles.removeBtn} onClick={() => removeSong(idx)}>
+                                        <FaTrash />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Upload Button */}
+                <div className="mt-4 pt-4 border-t border-white/10">
+                    {publicKey && urlEndpoint ? (
+                        <IKContext
+                            publicKey={publicKey}
+                            urlEndpoint={urlEndpoint}
+                            authenticator={authenticator}
+                        >
+                            <IKUpload
+                                fileName="temp-sheet"
+                                onError={handleUploadError}
+                                onSuccess={handleUploadSuccess}
+                                onUploadStart={() => setUploading(true)}
+                                validateFile={(file: any) => file.size < 10000000}
+                                className={styles.uploadFileInput}
+                                id="temp-upload"
+                            />
+                            <label
+                                htmlFor="temp-upload"
+                                className={`flex items-center justify-center gap-2 w-full py-3 rounded-lg border border-dashed border-white/20 hover:bg-white/5 cursor-pointer transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                                <FaImage className="text-gray-400" />
+                                <span className="text-sm text-gray-300">
+                                    {uploading ? "업로드 중..." : "이미지 직접 업로드"}
+                                </span>
+                            </label>
+                        </IKContext>
+                    ) : (
+                        <div className="text-red-400 text-xs text-center">ImageKit 설정 필요</div>
+                    )}
+                </div>
+            </div>
+        )
+    }
+
+    const SongFormColumn = () => {
+        return (
+            <div className={styles.panelRight}>
+                This is the column for showing songform
+            </div>
+        )
+    }
+
+    const RenderColumns = () => {
+        if (!goToInputSongForm) {
+            return (
+                <div className={styles.builderLayout}>
+                    <div className={styles.column}>
+                        <SearchSongsColumn />
+                    </div>
+
+                    <div className={styles.column}>
+                        <SelectedSongsColumn />
+                    </div>
+                </div>
+            )
+        } else {
+            return (
+                <div className={styles.builderLayout}>
+                    {/* Left Col: Selected & Song Form */}
+                    <div className={styles.column}>
+                        <SelectedSongsColumn />
+                    </div>
+                    <div className={styles.column}>
+                        <SongFormColumn />
+                    </div>
+                </div>
+            )
+        }
+    }
+
     return (
         <div className="animate-fade-in relative min-h-screen">
             <div className={styles.header}>
@@ -323,262 +621,9 @@ function NewSetlistContent() {
                 </div>
             </div>
 
-            <div className={styles.builderLayout}>
-                {/* Left Col: Config & Song Selection */}
-                <div className={styles.column}>
-                    <div className={styles.inputForm}>
-                        <div className={styles.formGroup}>
-                            <input
-                                className={`${styles.search} ${styles.mb0}`}
-                                value={formData.name}
-                                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                placeholder={`이름(${formData.targetDate})`}
-                                autoFocus
-                            />
-                        </div>
-                        <div className={styles.formGroup2}>
-                            <div className="relative">
-                                <div className={styles.formCalendarGroup}>
-                                    <input
-                                        type="text"
-                                        readOnly
-                                        className={styles.dateInput}
-                                        value={formData.targetDate.replaceAll('-', '/')}
-                                        onClick={() => setShowCalendar(!showCalendar)}
-                                        placeholder="YYYY/MM/DD"
-                                    />
-                                    <button
-                                        onClick={() => setShowCalendar(!showCalendar)}
-                                        className={styles.calendarButton}
-                                    >
-                                        <FaCalendarAlt />
-                                    </button>
-                                </div>
-                                {showCalendar && (
-                                    <div className={styles.calendarContainer}>
-                                        <div
-                                            className="fixed inset-0 z-[-1]"
-                                            onClick={() => setShowCalendar(false)}
-                                        ></div>
-                                        <Calendar
-                                            onChange={(value: any) => {
-                                                const date = value as Date;
-                                                const year = date.getFullYear();
-                                                const month = String(date.getMonth() + 1).padStart(2, '0');
-                                                const day = String(date.getDate()).padStart(2, '0');
-                                                setFormData({ ...formData, targetDate: `${year}-${month}-${day}` });
-                                                setShowCalendar(false);
-                                            }}
-                                            value={new Date(formData.targetDate)}
-                                            formatDay={(locale, date) => date.getDate().toString()}
-                                            className="!bg-transparent !border-0 text-white"
-                                            tileClassName="!text-white hover:!bg-[var(--primary)] hover:!text-white rounded-lg"
-                                            prevLabel="<"
-                                            nextLabel=">"
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                    <div className={styles.divider}></div>
-                    <div className={styles.songSearch}>
-                        <div className={styles.searchInputContainer}>
-                            <input
-                                className={styles.songSearchInput}
-                                placeholder="라이브러리 검색..."
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                            />
-                            {search && (
-                                <button
-                                    onClick={() => setSearch("")}
-                                    className={styles.clearBtn}
-                                >
-                                    <FaTimes />
-                                </button>
-                            )}
-                        </div>
+            <RenderColumns />
 
-                        <div className={styles.filterPopupContainer}>
-                            <button
-                                className={`${styles.filterBtn} ${showFilters || filterKey || filterLanguage || filterCategory ? styles.filterBtnActive : ''}`}
-                                onClick={() => setShowFilters(!showFilters)}
-                                title="필터 옵션"
-                            >
-                                <FaFilter size={14} />
-                            </button>
-
-                            {showFilters && (
-                                <>
-                                    <div className="fixed inset-0 z-40" onClick={() => setShowFilters(false)}></div>
-                                    <div className={styles.filterPopup}>
-                                        <div>
-                                            <div className={styles.filterPopupLabel}>Key</div>
-                                            <select
-                                                className={`${styles.filterSelect} ${styles.fullWidth}`}
-                                                value={filterKey}
-                                                onChange={e => setFilterKey(e.target.value)}
-                                            >
-                                                <option value="">모든 키</option>
-                                                {["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"].map(k => (
-                                                    <option key={k} value={k}>{k}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-
-                                        <div>
-                                            <div className={styles.filterPopupLabel}>언어</div>
-                                            <select
-                                                className={`${styles.filterSelect} ${styles.fullWidth}`}
-                                                value={filterLanguage}
-                                                onChange={e => setFilterLanguage(e.target.value)}
-                                            >
-                                                <option value="">모든 언어</option>
-                                                <option value="한국어">한국어</option>
-                                                <option value="영어">영어</option>
-                                                <option value="아랍어">아랍어</option>
-                                                <option value="터키어">터키어</option>
-                                            </select>
-                                        </div>
-
-                                        <div>
-                                            <div className={styles.filterPopupLabel}>카테고리</div>
-                                            <select
-                                                className={`${styles.filterSelect} ${styles.fullWidth}`}
-                                                value={filterCategory}
-                                                onChange={e => setFilterCategory(e.target.value)}
-                                            >
-                                                <option value="">모든 카테고리</option>
-                                                <option value="상향">상향</option>
-                                                <option value="외향">외향</option>
-                                                <option value="내향">내향</option>
-                                                <option value="JOY">JOY</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Left Col: Find and Select */}
-                    <div className={styles.panelLeft}>
-
-
-                        {filteredSongs.length === 0 ? (
-                            <div className={styles.empty}>
-                                결과 없음
-                            </div>
-                        ) : (
-                            <div className="flex flex-col gap-1">
-                                {filteredSongs.map(song => {
-                                    const isAdded = selectedSongs.some(s => s.id === song.id);
-                                    return (
-                                        <div
-                                            key={song.id}
-                                            className={`${styles.songItem}`}
-                                            onClick={() => setViewingSong(song)}
-                                        >
-                                            <div className={isAdded ? 'opacity-50' : ''}>
-                                                <div className={styles.songItemName}>{song.songName}</div>
-                                                <div className={styles.songItemArtist}>{song.songKey} • {song.songArtist}</div>
-                                            </div>
-                                            {isAdded ? (
-                                                <div className="p-2">
-                                                    <FaCheck className="text-green-500" />
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    className={styles.addBtn}
-                                                    onClick={(e) => addSong(song, e)}
-                                                >
-                                                    <FaPlus className={styles.songItemAdd} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Right Col: Selected & Ordering */}
-                <div className={styles.column}>
-                    <div className={styles.panelRight}>
-                        <h3 className={styles.panelTitle}>
-                            <span className={styles.songCountText}>{selectedSongs.length}곡 </span>
-                        </h3>
-
-                        {selectedSongs.length === 0 ? (
-                            <div className={styles.empty}>
-                                라이브러리에서 곡을 선택하세요
-                            </div>
-                        ) : (
-                            <div>
-                                {selectedSongs.map((song, idx) => (
-                                    <div key={`${song.id}-${idx}`} className={styles.selectedSong}>
-                                        <div>
-                                            <div className={styles.selectedSongInfo}>
-                                                <div className={styles.selectedSongNumber}>{idx + 1}</div>
-                                                <div className={styles.selectedSongKey}>{song.songKey}</div>
-                                            </div>
-                                            <div>
-                                                <div className="font-semibold">{song.songName}</div>
-                                            </div>
-                                        </div>
-
-                                        <div className={styles.orderControls}>
-                                            <button className={styles.controlBtn} onClick={() => moveSong(idx, 'up')} disabled={idx === 0}>
-                                                <FaArrowUp />
-                                            </button>
-                                            <button className={styles.controlBtn} onClick={() => moveSong(idx, 'down')} disabled={idx === selectedSongs.length - 1}>
-                                                <FaArrowDown />
-                                            </button>
-                                            <button className={styles.removeBtn} onClick={() => removeSong(idx)}>
-                                                <FaTrash />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Upload Button */}
-                        <div className="mt-4 pt-4 border-t border-white/10">
-                            {publicKey && urlEndpoint ? (
-                                <IKContext
-                                    publicKey={publicKey}
-                                    urlEndpoint={urlEndpoint}
-                                    authenticator={authenticator}
-                                >
-                                    <IKUpload
-                                        fileName="temp-sheet"
-                                        onError={handleUploadError}
-                                        onSuccess={handleUploadSuccess}
-                                        onUploadStart={() => setUploading(true)}
-                                        validateFile={(file: any) => file.size < 10000000}
-                                        className={styles.uploadFileInput}
-                                        id="temp-upload"
-                                    />
-                                    <label
-                                        htmlFor="temp-upload"
-                                        className={`flex items-center justify-center gap-2 w-full py-3 rounded-lg border border-dashed border-white/20 hover:bg-white/5 cursor-pointer transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                    >
-                                        <FaImage className="text-gray-400" />
-                                        <span className="text-sm text-gray-300">
-                                            {uploading ? "업로드 중..." : "이미지 직접 업로드"}
-                                        </span>
-                                    </label>
-                                </IKContext>
-                            ) : (
-                                <div className="text-red-400 text-xs text-center">ImageKit 설정 필요</div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <button onClick={() => setGoToInputSongForm(!goToInputSongForm)} className={styles.nextBtn}>다음</button>
 
             {/* Song Preview Modal */}
             <AnimatePresence>
