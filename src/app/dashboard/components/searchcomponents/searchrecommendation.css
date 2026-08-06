@@ -6,7 +6,7 @@
     background: rgba(20, 20, 20, 0.95);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--secondary);
+    border: 1px solid var(--primary);
     border-radius: 0.75rem;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     z-index: 100;

@@ -25,6 +25,7 @@ export default function SetlistsPage() {
             const data = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
             // Client side sort
             data.sort((a, b) => new Date(b.setTargetDate).getTime() - new Date(a.setTargetDate).getTime());
+            data.sort((a, b) => new Date(b.setDate).getTime() - new Date(a.setDate).getTime());
             setSetlists(data);
         });
         return () => unsub();

@@ -111,13 +111,13 @@
 }
 
 .joyCheckboxContainerActive {
-    color: var(--secondary);
+    color: var(--primary);
     opacity: 1;
 }
 
 .joyCheckboxInput {
     cursor: pointer;
-    accent-color: var(--secondary);
+    accent-color: var(--primary);
 }
 
 .filterBarSelectContainer {

@@ -98,7 +98,7 @@ export default function SearchRecommendations({
             return a.song.songName.localeCompare(b.song.songName);
         });
 
-        return matches.slice(0, 8); // Top 8 suggestions
+        return matches.slice(0, 5); // Top 8 suggestions
     }, [songs, trimmedQuery]);
 
     // Render empty query view: Recent Searches
