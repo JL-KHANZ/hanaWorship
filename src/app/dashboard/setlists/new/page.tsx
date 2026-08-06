@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "../setlists.module.css";
 import Calendar from "react-calendar";
+// @ts-ignore: side-effect import of CSS without type declarations
 import "react-calendar/dist/Calendar.css";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { FaPlus, FaArrowUp, FaArrowDown, FaTrash, FaSearch, FaCalendarAlt, FaCheck, FaTimes, FaFilter, FaImage } from "react-icons/fa";
@@ -518,7 +519,7 @@ function NewSetlistContent() {
                                         <div className={styles.selectedSongKey}>{song.songKey}</div>
                                     </div>
                                     <div>
-                                        <div className="font-semibold">{song.songName}</div>
+                                        <div className={styles.selectedSongName}>{song.songName}</div>
                                     </div>
                                 </div>
 
@@ -573,6 +574,42 @@ function NewSetlistContent() {
         )
     }
 
+    const SelectedSongsSongFormColumn = () => {
+        return (
+            <div className={styles.panelLeft}>
+
+                {selectedSongs.length === 0 ? (
+                    <div className={styles.empty}>
+                        라이브러리에서 곡을 선택하세요
+                    </div>
+                ) : (
+                    <div>
+                        {selectedSongs.map((song, idx) => (
+                            <div key={`${song.id}-${idx}`} className={styles.selectedSongForSongForm}>
+                                <div className={styles.selectedSongInfo}>
+                                    <div className={styles.selectedSongNumber}>{idx + 1}</div>
+                                </div>
+                                <div className={styles.selectedSongNameContainer}>
+                                    <div className={styles.selectedSongName}>{song.songName}</div>
+                                </div>
+
+                                <div className={styles.orderControls}>
+                                    <button className={styles.controlBtn} onClick={() => moveSong(idx, 'up')} disabled={idx === 0}>
+                                        <FaArrowUp />
+                                    </button>
+                                    <button className={styles.controlBtn} onClick={() => moveSong(idx, 'down')} disabled={idx === selectedSongs.length - 1}>
+                                        <FaArrowDown />
+                                    </button>
+                                    <div className={styles.selectedSongKey}>{song.songKey}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        )
+    }
+
     const SongFormColumn = () => {
         return (
             <div className={styles.panelRight}>
@@ -599,7 +636,7 @@ function NewSetlistContent() {
                 <div className={styles.builderLayout}>
                     {/* Left Col: Selected & Song Form */}
                     <div className={styles.column}>
-                        <SelectedSongsColumn />
+                        <SelectedSongsSongFormColumn />
                     </div>
                     <div className={styles.column}>
                         <SongFormColumn />
@@ -623,7 +660,11 @@ function NewSetlistContent() {
 
             <RenderColumns />
 
-            <button onClick={() => setGoToInputSongForm(!goToInputSongForm)} className={styles.nextBtn}>다음</button>
+            {/* {goToInputSongForm ? (
+                <button onClick={() => setGoToInputSongForm(!goToInputSongForm)} className={styles.beforeBtn}>이전</button>
+            ) : (
+                <button onClick={() => setGoToInputSongForm(!goToInputSongForm)} className={styles.nextBtn}>다음</button>
+            )} */}
 
             {/* Song Preview Modal */}
             <AnimatePresence>
