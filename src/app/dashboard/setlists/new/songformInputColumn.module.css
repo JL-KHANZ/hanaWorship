@@ -1,0 +1,73 @@
+.panelRight {
+    border-radius: 1rem;
+    padding: 1.25rem;
+    flex: 1;
+    overflow-y: auto;
+    max-height: 37vh;
+    margin-top: 0.5rem;
+}
+
+.empty {
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0.5;
+}
+
+.songFormList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.songFormCard {
+    margin-bottom: 1rem;
+    padding: 0.8rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+/* Active chosen card gets a highlighted border */
+.activeCard {
+    border-color: var(--primary, #3b82f6);
+}
+
+/* Inactive cards look slightly muted */
+.inactiveCard {
+    opacity: 0.6;
+    cursor: pointer;
+}
+
+.songFormTextarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.6rem;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+    font-family: inherit;
+    font-weight: 400;
+    border: 1px solid var(--surface-border, #cbd5e1);
+    resize: none;
+    outline: none;
+    overflow: hidden;
+    background-color: transparent;
+    border-color: transparent;
+    color: var(--text-1, white);
+    field-sizing: content;
+}
+
+/* Read-only appearance when not chosen */
+.readOnlyTextarea {
+    background-color: transparent;
+    border-color: transparent;
+    color: white;
+    font-size: 0.9rem;
+}
+
+.songFormHeader {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--primary);
+}

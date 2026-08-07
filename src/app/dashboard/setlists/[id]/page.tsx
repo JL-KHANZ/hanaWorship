@@ -5,7 +5,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import styles from "./viewer.module.css";
 import { AnimatePresence, motion } from "framer-motion";
-import { FaDownload, FaArrowLeft, FaPrint, FaPlay, FaTimes, FaChevronLeft, FaChevronRight, FaPen, FaTrash } from "react-icons/fa";
+import { FaDownload, FaArrowLeft, FaPrint, FaPlay, FaTimes, FaChevronLeft, FaChevronRight, FaPen, FaTrash, FaFileAlt } from "react-icons/fa";
 import jsPDF from "jspdf";
 
 export default function SetlistViewerPage() {
@@ -202,20 +202,24 @@ export default function SetlistViewerPage() {
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ duration: 0.2 }}
                         className={styles.topBar}
-                        onClick={(e) => e.stopPropagation()} // Prevent toggling when clicking toolbar
+                        onClick={(e) => e.stopPropagation()}
                     >
                         <div className={styles.topBarContent}>
-                            <button onClick={() => router.back()} className={styles.closeBtn}>
+                            <button onClick={() => router.push('/dashboard/setlists')} className={styles.closeBtn}>
                                 <FaArrowLeft /> 뒤로가기
                             </button>
                         </div>
 
+                        <div className={styles.captionTitle}>
+                            {currentSlide.songKey}
+                        </div>
+
                         <div className={styles.topBarContent}>
-                            <button onClick={handleEdit} className={styles.actionBtn} title="수정">
-                                <FaPen />
-                            </button>
-                            <button onClick={handleDelete} className={`${styles.actionBtn} text-red-500`} title="삭제">
+                            <button onClick={handleDelete} className={`${styles.actionBtn} ${styles.deleteBtn}`} title="삭제">
                                 <FaTrash />
+                            </button>
+                            <button onClick={handleEdit} className={`${styles.actionBtn}`} title="수정">
+                                <FaPen />
                             </button>
                             <button onClick={generatePDF} disabled={generatingPdf} className={styles.actionBtn} title="PDF 다운로드">
                                 {generatingPdf ? <span className="text-xs">다운로드 중...</span> : <FaDownload />}
@@ -310,17 +314,9 @@ export default function SetlistViewerPage() {
                         transition={{ duration: 0.2 }}
                         style={{ pointerEvents: 'none' }} // Let clicks pass through to container
                     >
-                        <div className={styles.caption} style={{ paddingBottom: '4rem' }}>
-                            <h2 className={styles.captionTitle}>
-                                {currentSlide.totalPages > 1 && (
-                                    <span className="text-sm bg-blue-500/80 px-2 py-0.5 rounded-full mr-2 align-middle">
-                                        P{currentSlide.pageIndex + 1}
-                                    </span>
-                                )}
-                                {currentSlide.songName}
-                            </h2>
+                        <div className={styles.caption}>
                             <p className={styles.captionSubtitle}>
-                                {currentSlide.songKey} {currentSlide.songArtist}
+                                {currentSlide.songForm ? currentSlide.songForm : ""}
                             </p>
                         </div>
 

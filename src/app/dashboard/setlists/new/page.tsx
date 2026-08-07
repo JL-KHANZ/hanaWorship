@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, addDoc, serverTimestamp, doc, getDoc, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
@@ -12,6 +12,7 @@ import { IKContext, IKUpload } from "imagekitio-react";
 import { FaPlus, FaArrowUp, FaArrowDown, FaTrash, FaSearch, FaCalendarAlt, FaCheck, FaTimes, FaFilter, FaImage } from "react-icons/fa";
 import SongViewer from "../../components/SongViewer";
 import { AnimatePresence } from "framer-motion";
+import { SongFormColumn } from "./songformInputColumn"; // Import the SongFormColumn component
 
 const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
 const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
@@ -44,6 +45,7 @@ function NewSetlistContent() {
     });
 
     const [selectedSongs, setSelectedSongs] = useState<any[]>([]);
+    const [chosenSongIndex, setChosenSongIndex] = useState<number | null>(null);
     const [saving, setSaving] = useState(false);
     const [showCalendar, setShowCalendar] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -290,22 +292,25 @@ function NewSetlistContent() {
         }
         setSaving(true);
         try {
+            let savedSetId: string;
             if (isEditing && editSetId) {
                 await updateDoc(doc(db, "setlists", editSetId), {
                     name: formData.name,
                     setTargetDate: formData.targetDate,
                     songs: selectedSongs,
                 });
+                savedSetId = editSetId;
             } else {
-                await addDoc(collection(db, "setlists"), {
+                const docRef = await addDoc(collection(db, "setlists"), {
                     name: formData.name,
                     setTargetDate: formData.targetDate,
                     setOwner: user?.uid,
                     setCreatedDate: new Date(),
                     songs: selectedSongs, // storing full song objects for simplicity and snapshot preservation
                 });
+                savedSetId = docRef.id;
             }
-            router.back(); // Go back to preserve history (either set viewer or song viewer)
+            router.push(`/dashboard/setlists/${savedSetId}`);
         } catch (error) {
             console.error(error);
             alert("콘티 저장 실패");
@@ -454,9 +459,7 @@ function NewSetlistContent() {
                     </div>
                 </div>
 
-                {/* Left Col: Find and Select */}
                 <div className={styles.panelLeft}>
-
 
                     {filteredSongs.length === 0 ? (
                         <div className={styles.empty}>
@@ -477,13 +480,17 @@ function NewSetlistContent() {
                                             <div className={styles.songItemArtist}>{song.songKey} • {song.songArtist}</div>
                                         </div>
                                         {isAdded ? (
-                                            <div className="p-2">
-                                                <FaCheck className="text-green-500" />
+                                            <div>
+                                                <FaCheck />
                                             </div>
                                         ) : (
                                             <button
                                                 className={styles.addBtn}
-                                                onClick={(e) => addSong(song, e)}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    addSong(song, e)}
+                                                }
                                             >
                                                 <FaPlus className={styles.songItemAdd} />
                                             </button>
@@ -513,17 +520,15 @@ function NewSetlistContent() {
                     <div>
                         {selectedSongs.map((song, idx) => (
                             <div key={`${song.id}-${idx}`} className={styles.selectedSong}>
-                                <div>
-                                    <div className={styles.selectedSongInfo}>
-                                        <div className={styles.selectedSongNumber}>{idx + 1}</div>
-                                        <div className={styles.selectedSongKey}>{song.songKey}</div>
-                                    </div>
-                                    <div>
-                                        <div className={styles.selectedSongName}>{song.songName}</div>
-                                    </div>
+                                <div className={styles.selectedSongInfoForSongForm}>
+                                    <div className={styles.selectedSongNumberForSongForm}>{idx + 1}</div>
+                                </div>
+                                    <div className={styles.selectedSongKeyForSongForm}>{song.songKey}</div>
+                                <div className={styles.selectedSongNameContainerForSongForm}>
+                                    <div className={styles.selectedSongNameForSongForm}>{song.songName}</div>
                                 </div>
 
-                                <div className={styles.orderControls}>
+                                <div className={styles.orderControlsForSongForm}>
                                     <button className={styles.controlBtn} onClick={() => moveSong(idx, 'up')} disabled={idx === 0}>
                                         <FaArrowUp />
                                     </button>
@@ -575,55 +580,92 @@ function NewSetlistContent() {
     }
 
     const SelectedSongsSongFormColumn = () => {
-        return (
-            <div className={styles.panelLeft}>
+    // 1. Ref to attach to the active song card
+    const activeCardRef = useRef<HTMLDivElement>(null);
 
-                {selectedSongs.length === 0 ? (
-                    <div className={styles.empty}>
-                        라이브러리에서 곡을 선택하세요
-                    </div>
-                ) : (
-                    <div>
-                        {selectedSongs.map((song, idx) => (
-                            <div key={`${song.id}-${idx}`} className={styles.selectedSongForSongForm}>
-                                <div className={styles.selectedSongInfo}>
-                                    <div className={styles.selectedSongNumber}>{idx + 1}</div>
+    // 2. Scroll to the active card inside .panelLeft whenever chosenSongIndex changes
+    useEffect(() => {
+        if (chosenSongIndex !== null && activeCardRef.current) {
+            activeCardRef.current.scrollIntoView({
+                behavior: 'instant',
+                block: 'center',
+            });
+        }
+    }, [chosenSongIndex]);
+
+    return (
+        <div className={styles.panelLeft}>
+            {selectedSongs.length === 0 ? (
+                <div className={styles.empty}>
+                    라이브러리에서 곡을 선택하세요
+                </div>
+            ) : (
+                <div>
+                    {selectedSongs.map((song, idx) => {
+                        const isChosen = chosenSongIndex === idx;
+
+                        return (
+                            <div 
+                                key={`${song.id}-${idx}`} 
+                                // 3. Attach ref ONLY to the active song card
+                                ref={isChosen ? activeCardRef : null}
+                                className={[
+                                    styles.selectedSongForSongForm, 
+                                    isChosen ? styles.selectedSongForSongFormIsActive : ''
+                                ].join(' ')} 
+                                onClick={() => setChosenSongIndex(idx)}
+                            >
+                                <div className={styles.selectedSongInfoForSongForm}>
+                                    <div className={styles.selectedSongNumberForSongForm}>{idx + 1}</div>
                                 </div>
-                                <div className={styles.selectedSongNameContainer}>
-                                    <div className={styles.selectedSongName}>{song.songName}</div>
+                                <div className={styles.selectedSongKeyForSongForm}>{song.songKey}</div>
+                                <div className={styles.selectedSongNameContainerForSongForm}>
+                                    <div className={styles.selectedSongNameForSongForm}>{song.songName}</div>
                                 </div>
 
-                                <div className={styles.orderControls}>
-                                    <button className={styles.controlBtn} onClick={() => moveSong(idx, 'up')} disabled={idx === 0}>
+                                <div className={styles.orderControlsForSongForm}>
+                                    {/* e.stopPropagation() prevents re-triggering setChosenSongIndex when reordering */}
+                                    <button 
+                                        className={styles.controlBtn} 
+                                        onClick={(e) => { e.stopPropagation(); moveSong(idx, 'up'); }} 
+                                        disabled={idx === 0}
+                                    >
                                         <FaArrowUp />
                                     </button>
-                                    <button className={styles.controlBtn} onClick={() => moveSong(idx, 'down')} disabled={idx === selectedSongs.length - 1}>
+                                    <button 
+                                        className={styles.controlBtn} 
+                                        onClick={(e) => { e.stopPropagation(); moveSong(idx, 'down'); }} 
+                                        disabled={idx === selectedSongs.length - 1}
+                                    >
                                         <FaArrowDown />
                                     </button>
-                                    <div className={styles.selectedSongKey}>{song.songKey}</div>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-        )
-    }
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+        );
+    };
 
-    const SongFormColumn = () => {
-        return (
-            <div className={styles.panelRight}>
-                This is the column for showing songform
-            </div>
-        )
-    }
+    const handleSongFormChange = (index: number, value: string) => {
+    setSelectedSongs((prevSongs) => {
+        const updated = [...prevSongs];
+        updated[index] = {
+            ...updated[index],
+            songForm: value,
+        };
+        return updated;
+        });
+    };
 
-    const RenderColumns = () => {
+    const renderColumns = () => {
         if (!goToInputSongForm) {
             return (
                 <div className={styles.builderLayout}>
                     <div className={styles.column}>
-                        <SearchSongsColumn />
+                        {SearchSongsColumn()}
                     </div>
 
                     <div className={styles.column}>
@@ -639,7 +681,12 @@ function NewSetlistContent() {
                         <SelectedSongsSongFormColumn />
                     </div>
                     <div className={styles.column}>
-                        <SongFormColumn />
+                        <SongFormColumn 
+                            selectedSongs={selectedSongs}
+                            chosenSongIndex={chosenSongIndex} 
+                            onSongFormChange={handleSongFormChange} 
+                            onSelectSong={(index) => setChosenSongIndex(index)} // Optional: allows selecting by clicking the card on the right
+                        />
                     </div>
                 </div>
             )
@@ -658,13 +705,13 @@ function NewSetlistContent() {
                 </div>
             </div>
 
-            <RenderColumns />
+            {renderColumns()}
 
-            {/* {goToInputSongForm ? (
+            {goToInputSongForm ? (
                 <button onClick={() => setGoToInputSongForm(!goToInputSongForm)} className={styles.beforeBtn}>이전</button>
             ) : (
                 <button onClick={() => setGoToInputSongForm(!goToInputSongForm)} className={styles.nextBtn}>다음</button>
-            )} */}
+            )}
 
             {/* Song Preview Modal */}
             <AnimatePresence>

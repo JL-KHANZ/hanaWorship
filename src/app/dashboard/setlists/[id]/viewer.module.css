@@ -45,8 +45,11 @@
 }
 
 .actionBtn {
-    padding: 0.5rem;
-    background: rgba(255, 255, 255, 0.1);
+    padding-top: 0.5rem;
+    padding-bottom: 0.4rem;
+    padding-inline: 0.5rem;
+    margin: 0.4rem;
+    background: var(--primary, #3b82f6);
     border-radius: 9999px;
     color: white;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -58,6 +61,10 @@
 
 .actionBtn:hover {
     background: rgba(255, 255, 255, 0.2);
+}
+
+.deleteBtn {
+    background: var(--error, #ef4444);
 }
 
 .mainContent {
@@ -148,22 +155,29 @@
     right: 0;
     text-align: center;
     color: white;
+    font-weight: 600;
+    -webkit-text-stroke: 2px black;
+    paint-order: stroke fill;
     pointer-events: none;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
     background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
-    padding-bottom: 3rem;
-    padding-top: 5rem;
+    padding-bottom: 2rem;
+    padding-top: 2rem;
 }
 
 .captionTitle {
     font-size: 1.5rem;
     font-weight: 700;
     margin-bottom: 0.25rem;
+    justify-content: center;
+    text-align: center;
+    padding-top: 0.5rem;
 }
 
 .captionSubtitle {
     opacity: 0.8;
     font-size: 1rem;
+    white-space: pre-line;
 }
 
 .pageIndicator {
