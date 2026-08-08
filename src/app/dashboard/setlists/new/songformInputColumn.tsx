@@ -86,9 +86,8 @@ export const SongFormColumn: React.FC<SongFormColumnProps> = ({
             className={`${styles.songFormCard} ${isChosen ? styles.activeCard : styles.inactiveCard}`}
           >
             <div className={styles.songFormHeader}>
-              <span className={styles.songIndex}>{idx + 1}.</span>
+              <span className={styles.songIndex}>{idx + 1}. </span>
               <span className={styles.songTitle}>{song.songName}</span>
-              <span className={styles.songKey}>({song.songKey})</span>
             </div>
 
             <textarea

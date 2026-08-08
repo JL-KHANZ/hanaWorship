@@ -669,7 +669,7 @@ function NewSetlistContent() {
                     </div>
 
                     <div className={styles.column}>
-                        <SelectedSongsColumn />
+                        {SelectedSongsColumn()}
                     </div>
                 </div>
             )

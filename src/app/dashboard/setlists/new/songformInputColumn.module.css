@@ -2,9 +2,10 @@
     border-radius: 1rem;
     padding: 1.25rem;
     flex: 1;
-    overflow-y: auto;
+    overflow-y: hidden;
     max-height: 37vh;
     margin-top: 0.5rem;
+    touch-action: none;
 }
 
 .empty {
